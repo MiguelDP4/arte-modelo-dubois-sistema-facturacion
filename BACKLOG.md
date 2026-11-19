@@ -6,8 +6,8 @@
 
 | Fase | Nombre | Estado |
 | :--- | :--- | :--- |
-| **Fase 0** | Fundación, Monorepo, Entornos y Sistema de Diseño | `En Revisión` |
-| **Fase 1** | Autenticación, Roles Fijos y RBAC Real | `En Revisión` |
+| **Fase 0** | Fundación, Monorepo, Entornos y Sistema de Diseño | `Hecho` |
+| **Fase 1** | Autenticación, Roles Fijos y RBAC Real | `Hecho` |
 | **Fase 2** | Catálogo Multimoneda, Códigos Múltiples y Kardex | `Pendiente` |
 | **Fase 3** | Cartera Regional de Clientes | `Pendiente` |
 | **Fase 4** | Motor de Pedidos, Precios, Empaque y Despachos | `Pendiente` |
@@ -21,18 +21,18 @@
 ### Fase 0 — Fundación, Monorepo, Entornos y Sistema de Diseño
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F0-01` | Inicializar rama `development` y estructura monorepo (`apps/api`, `apps/web`, `packages/shared`) con TypeScript, ESLint, Vitest (>85%) y Playwright | `feature/F0-01-monorepo-setup` | `En Revisión` | Monorepo compila (`build`), corren scripts `test` y `test:coverage` base en ambos apps. |
-| `F0-02` | Alinear servicios externos e infraestructura con *Kroma Lab Sales Studio* y documentar `.env.example` (Local, Test, Staging, Prod) | `feature/F0-02-infra-env-setup` | `En Revisión` | Guía clara para Miguel con todas las variables de entorno y bases separadas (`local`, `test`, `staging`, `prod`). |
-| `F0-03` | Extraer logo oficial desde v1.0 a `apps/web/public` y `apps/api/assets` para encabezados web y Excel | `feature/F0-03-logo-assets` | `En Revisión` | Logo nítido en PNG/SVG disponible para UI y generador `.xlsx`. |
-| `F0-04` | Construir `theme.scss` (contraste WCAG AA light/dark, `border-radius: 0`, sombras suaves Material Design) y componentes base Mobile-First (`Topbar`, `Sidebar`, `Modal`, `Toast`, `ResponsiveTable`) | `feature/F0-04-design-system-shell` | `En Revisión` | Shell navegable en 320px/375px y desktop, sin `alert()`, tests unitarios + Playwright visual básico pasando. |
+| `F0-01` | Inicializar rama `development` y estructura monorepo (`apps/api`, `apps/web`, `packages/shared`) con TypeScript, ESLint, Vitest (>85%) y Playwright | `feature/F0-01-monorepo-setup` | `Hecho` | Monorepo compila (`build`), corren scripts `test` y `test:coverage` base en ambos apps. |
+| `F0-02` | Alinear servicios externos e infraestructura con *Kroma Lab Sales Studio* y documentar `.env.example` (Local, Test, Staging, Prod) | `feature/F0-02-infra-env-setup` | `Hecho` | Guía clara para Miguel con todas las variables de entorno y bases separadas (`local`, `test`, `staging`, `prod`). |
+| `F0-03` | Extraer logo oficial desde v1.0 a `apps/web/public` y `apps/api/assets` para encabezados web y Excel | `feature/F0-03-logo-assets` | `Hecho` | Logo nítido en PNG/SVG disponible para UI y generador `.xlsx`. |
+| `F0-04` | Construir `theme.scss` (contraste WCAG AA light/dark, `border-radius: 0`, sombras suaves Material Design) y componentes base Mobile-First (`Topbar`, `Sidebar`, `Modal`, `Toast`, `ResponsiveTable`) | `feature/F0-04-design-system-shell` | `Hecho` | Shell navegable en 320px/375px y desktop, sin `alert()`, tests unitarios + Playwright visual básico pasando. |
 
 ### Fase 1 — Autenticación, Roles Fijos y RBAC Real
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F1-01` | Esquema Prisma inicial (`User`, `Permission`, `RolePermission` para `ADMIN`, `EMPLOYEE`, `CUSTOMER`) + script `seed-permissions` | `feature/F1-01-auth-rbac-schema` | `En Revisión` | Migración aplicada en local y test DB; seed idempotente de permisos por rol. |
-| `F1-02` | Endpoints de Auth (`/auth/register`, `/verify`, `/login`, `/refresh-token` `httpOnly`, `/invite`, `/complete-invitation`) + correos Resend | `feature/F1-02-auth-api` | `En Revisión` | Validación Zod, hashing SHA-256/bcrypt, tests unitarios e integración pasando. |
-| `F1-03` | Middleware `requireAuth` + `requirePermission(...)` aplicado a todas las rutas privadas y UI de `/login`, `/registro`, `/registro-invitado` | `feature/F1-03-auth-ui-rbac` | `En Revisión` | Flujos auth probados en Vitest y Playwright (login, registro, expiración/refresh). |
-| `F1-04` | Módulo `/usuarios` y `/configuracion` (gestión de usuarios, invitaciones y matriz de permisos para roles fijos) | `feature/F1-04-users-permissions-ui` | `En Revisión` | CRUD usuarios, reenvío de invitación y switches de permisos con tests unitarios y E2E. |
+| `F1-01` | Esquema Prisma inicial (`User`, `Permission`, `RolePermission` para `ADMIN`, `EMPLOYEE`, `CUSTOMER`) + script `seed-permissions` | `feature/F1-01-auth-rbac-schema` | `Hecho` | Migración aplicada en local y test DB; seed idempotente de permisos por rol. |
+| `F1-02` | Endpoints de Auth (`/auth/register`, `/verify`, `/login`, `/refresh-token` `httpOnly`, `/invite`, `/complete-invitation`) + correos Resend | `feature/F1-02-auth-api` | `Hecho` | Validación Zod, hashing SHA-256/bcrypt, tests unitarios e integración pasando. |
+| `F1-03` | Middleware `requireAuth` + `requirePermission(...)` aplicado a todas las rutas privadas y UI de `/login`, `/registro`, `/registro-invitado` | `feature/F1-03-auth-ui-rbac` | `Hecho` | Flujos auth probados en Vitest y Playwright (login, registro, expiración/refresh). |
+| `F1-04` | Módulo `/usuarios` y `/configuracion` (gestión de usuarios, invitaciones y matriz de permisos para roles fijos) | `feature/F1-04-users-permissions-ui` | `Hecho` | CRUD usuarios, reenvío de invitación y switches de permisos con tests unitarios y E2E. |
 
 ### Fase 2 — Catálogo Multimoneda, Códigos Múltiples y Kardex
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
