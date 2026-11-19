@@ -6,6 +6,7 @@ import { permissionsRouter } from './permissions.routes';
 import { catalogRouter } from './catalog.routes';
 import { productsRouter } from './products.routes';
 import { customersRouter } from './customers.routes';
+import { ordersRouter } from './orders.routes';
 import { uploadsRouter } from './uploads.routes';
 
 export const apiRouter = Router();
@@ -34,4 +35,5 @@ apiRouter.use('/permissions', permissionsRouter);
 apiRouter.use('/catalog', catalogRouter);
 apiRouter.use('/products', productsRouter);
 apiRouter.use('/customers', customersRouter);
+apiRouter.use('/orders', ordersRouter);
 apiRouter.use('/uploads', uploadsRouter);

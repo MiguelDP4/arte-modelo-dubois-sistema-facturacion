@@ -5,6 +5,10 @@ import { clearMockOutbox } from '../services/email.service';
 
 export async function resetDatabase() {
   await prisma.$transaction([
+    prisma.dispatchEventItem.deleteMany(),
+    prisma.dispatchEvent.deleteMany(),
+    prisma.orderItem.deleteMany(),
+    prisma.order.deleteMany(),
     prisma.stockMovement.deleteMany(),
     prisma.productImage.deleteMany(),
     prisma.productCode.deleteMany(),

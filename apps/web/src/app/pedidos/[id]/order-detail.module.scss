@@ -1,0 +1,264 @@
+@use '../../../styles/mixins.scss' as *;
+
+.page {
+  @include page-container;
+}
+
+.header {
+  @include page-header;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.badgesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryBtn {
+  @include button-primary;
+}
+
+.secondaryBtn {
+  @include button-secondary;
+}
+
+.dangerBtn {
+  @include button-danger;
+}
+
+.infoCardsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.08rem;
+    color: var(--text-primary);
+  }
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 520px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  span {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+  }
+}
+
+.cancelBox {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.maskedNotice {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  padding: 14px;
+  font-weight: 700;
+  font-size: 0.94rem;
+}
+
+.financeRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.financeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.94rem;
+  color: var(--text-secondary);
+
+  strong {
+    color: var(--text-primary);
+  }
+}
+
+.financeGrand {
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 8px 0;
+  font-size: 1.06rem;
+  font-weight: 700;
+}
+
+.itemCell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+}
+
+.pendingQty {
+  color: var(--color-warning);
+}
+
+.doneQty {
+  color: var(--color-success);
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.dispatchList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dispatchCard {
+  background-color: var(--background-surface);
+  box-shadow: var(--shadow-xs);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dispatchHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+
+  span {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+  }
+}
+
+.dispatchNotes {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.dispatchItemsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dispatchItemRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background-color: var(--background-elevated);
+  font-size: 0.88rem;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modalHelp {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.modalItemCard {
+  background-color: var(--background-surface);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modalItemTop {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+}
+
+.modalItemControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.field {
+  @include input-group;
+  flex: 1;
+}
+
+.deltaBadge {
+  padding: 8px 10px;
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  font-size: 0.84rem;
+  font-weight: 700;
+}

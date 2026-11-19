@@ -40,6 +40,21 @@ function DashboardContent() {
           </Link>
         </article>
 
+        {hasPermission('orders.read') ? (
+          <article className={styles.card}>
+            <div>
+              <h2>Pedidos y Despachos</h2>
+              <p>
+                Crea y confirma pedidos B2B, gestiona empaque por delta,
+                entregas parciales o totales y precios históricos por cliente.
+              </p>
+            </div>
+            <Link href="/pedidos" className={styles.cardAction}>
+              Ver Pedidos
+            </Link>
+          </article>
+        ) : null}
+
         {hasPermission('products.read_prices') ? (
           <article className={styles.card}>
             <div>
@@ -100,12 +115,12 @@ function DashboardContent() {
       </section>
 
       <section className={styles.infoBanner}>
-        <h3>Estado de Construcción — Fases 0, 1, 2 y 3 Activas</h3>
+        <h3>Estado de Construcción — Fases 0, 1, 2, 3 y 4 Activas</h3>
         <p>
-          El sistema ya cuenta con Catálogo público (sin precios/stock),
-          administración multimoneda con múltiples códigos y Kardex de inventario,
-          y Cartera Regional de Clientes con vinculación de cuentas. Las Fases 4
-          y 5 habilitarán Pedidos, Pagos, Consignación y exportación Excel.
+          El sistema ya integra Catálogo público, productos multimoneda con
+          Kardex, Cartera Regional de Clientes y el Motor de Pedidos con
+          confirmación, precios congelados, empaque por delta y despachos
+          parciales. La Fase 5 habilitará Pagos, Consignación y Excel (.xlsx).
         </p>
       </section>
     </div>

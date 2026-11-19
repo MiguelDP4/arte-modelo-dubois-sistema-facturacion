@@ -627,8 +627,270 @@ async function main() {
     }
   }
 
+  const clienteId = userMap.get('cliente@artemodelo.gt') ?? null;
+
+  const year = new Date().getFullYear();
+  const quetzalCustomer = await prisma.customer.findUnique({
+    where: { email: 'compras@elquetzal.gt' },
+  });
+  const sulaCustomer = await prisma.customer.findUnique({
+    where: { email: 'pedidos@sulahogar.hn' },
+  });
+  const marcoAzulCode = await prisma.productCode.findUnique({
+    where: { code: 'AMD-MC-4050' },
+    include: { product: true },
+  });
+  const molduraDoradaCode = await prisma.productCode.findUnique({
+    where: { code: 'AMD-MD-240' },
+    include: { product: true },
+  });
+  const diplomaCode = await prisma.productCode.findUnique({
+    where: { code: 'AMD-DIP-2835' },
+    include: { product: true },
+  });
+
+  if (
+    quetzalCustomer &&
+    sulaCustomer &&
+    marcoAzulCode &&
+    molduraDoradaCode &&
+    diplomaCode
+  ) {
+    const order1Num = `PED-${year}-0001`;
+    if (!(await prisma.order.findUnique({ where: { orderNumber: order1Num } }))) {
+      const order1 = await prisma.order.create({
+        data: {
+          orderNumber: order1Num,
+          customerId: quetzalCustomer.id,
+          type: 'REGULAR',
+          approvalStatus: 'CONFIRMED',
+          fulfillmentStatus: 'PARTIALLY_DISPATCHED',
+          paymentStatus: 'PENDING_PAYMENT',
+          currency: 'GTQ',
+          subtotal: 1590,
+          itemsDiscountTotal: 15,
+          shippingCost: 45,
+          shippingDiscount: 10,
+          totalAmount: 1610,
+          amountPaid: 0,
+          amountPending: 1610,
+          notes: 'Entrega parcial en Zona 10; saldo pendiente por despachar.',
+          createdById: adminId,
+          confirmedById: adminId,
+          confirmedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          items: {
+            create: [
+              {
+                productId: marcoAzulCode.product.id,
+                productName: marcoAzulCode.product.name,
+                productPrimaryCode: 'AMD-MC-4050',
+                quantityOrdered: 6,
+                quantityPacked: 4,
+                quantityDispatched: 2,
+                unitPrice: 175,
+                discountType: 'FIXED',
+                discountValue: 15,
+                discountAmount: 15,
+                lineTotal: 1035,
+              },
+              {
+                productId: diplomaCode.product.id,
+                productName: diplomaCode.product.name,
+                productPrimaryCode: 'AMD-DIP-2835',
+                quantityOrdered: 4,
+                quantityPacked: 4,
+                quantityDispatched: 4,
+                unitPrice: 135,
+                discountType: 'FIXED',
+                discountValue: 0,
+                discountAmount: 0,
+                lineTotal: 540,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+
+      const oiMarco = order1.items.find(
+        (i) => i.productId === marcoAzulCode.product.id,
+      )!;
+      const oiDiploma = order1.items.find(
+        (i) => i.productId === diplomaCode.product.id,
+      )!;
+
+      await prisma.dispatchEvent.create({
+        data: {
+          orderId: order1.id,
+          dispatchNumber: 1,
+          carrier: 'Guatex Express',
+          notes: 'Primera entrega parcial',
+          dispatchedById: adminId,
+          items: {
+            create: [
+              {
+                orderItemId: oiMarco.id,
+                quantityDispatched: 2,
+                cumulativeDispatched: 2,
+                remainingPending: 4,
+              },
+              {
+                orderItemId: oiDiploma.id,
+                quantityDispatched: 4,
+                cumulativeDispatched: 4,
+                remainingPending: 0,
+              },
+            ],
+          },
+        },
+      });
+
+      const prevMarco = marcoAzulCode.product.stock;
+      await prisma.product.update({
+        where: { id: marcoAzulCode.product.id },
+        data: { stock: Math.max(0, prevMarco - 4) },
+      });
+      await prisma.stockMovement.create({
+        data: {
+          productId: marcoAzulCode.product.id,
+          type: 'ORDER_PACK',
+          quantityDelta: -4,
+          previousStock: prevMarco,
+          newStock: Math.max(0, prevMarco - 4),
+          reason: `Empaque pedido ${order1Num}`,
+          reference: order1Num,
+          performedById: adminId,
+        },
+      });
+
+      const prevDiploma = diplomaCode.product.stock;
+      await prisma.product.update({
+        where: { id: diplomaCode.product.id },
+        data: { stock: Math.max(0, prevDiploma - 4) },
+      });
+      await prisma.stockMovement.create({
+        data: {
+          productId: diplomaCode.product.id,
+          type: 'ORDER_PACK',
+          quantityDelta: -4,
+          previousStock: prevDiploma,
+          newStock: Math.max(0, prevDiploma - 4),
+          reason: `Empaque pedido ${order1Num}`,
+          reference: order1Num,
+          performedById: adminId,
+        },
+      });
+    }
+
+    const order2Num = `PED-${year}-0002`;
+    if (!(await prisma.order.findUnique({ where: { orderNumber: order2Num } }))) {
+      await prisma.order.create({
+        data: {
+          orderNumber: order2Num,
+          customerId: quetzalCustomer.id,
+          type: 'REGULAR',
+          approvalStatus: 'PENDING_CONFIRMATION',
+          fulfillmentStatus: 'PENDING_PACKING',
+          paymentStatus: 'PENDING_PAYMENT',
+          currency: 'GTQ',
+          subtotal: 720,
+          itemsDiscountTotal: 0,
+          shippingCost: 0,
+          shippingDiscount: 0,
+          totalAmount: 720,
+          amountPaid: 0,
+          amountPending: 720,
+          notes: 'Pedido enviado desde portal de cliente para proyecto Zona 14.',
+          createdById: clienteId,
+          items: {
+            create: [
+              {
+                productId: molduraDoradaCode.product.id,
+                productName: molduraDoradaCode.product.name,
+                productPrimaryCode: 'AMD-MD-240',
+                quantityOrdered: 3,
+                quantityPacked: 0,
+                quantityDispatched: 0,
+                unitPrice: 240,
+                discountType: 'FIXED',
+                discountValue: 0,
+                discountAmount: 0,
+                lineTotal: 720,
+              },
+            ],
+          },
+        },
+      });
+    }
+
+    const order3Num = `PED-${year}-0003`;
+    if (!(await prisma.order.findUnique({ where: { orderNumber: order3Num } }))) {
+      const marcoFresh = await prisma.product.findUnique({
+        where: { id: marcoAzulCode.product.id },
+      });
+      const prevMarco3 = marcoFresh?.stock ?? 38;
+      await prisma.order.create({
+        data: {
+          orderNumber: order3Num,
+          customerId: sulaCustomer.id,
+          type: 'CONSIGNMENT',
+          approvalStatus: 'CONFIRMED',
+          fulfillmentStatus: 'READY_TO_DISPATCH',
+          paymentStatus: 'PENDING_PAYMENT',
+          currency: 'HNL',
+          subtotal: 2360,
+          itemsDiscountTotal: 0,
+          shippingCost: 120,
+          shippingDiscount: 0,
+          totalAmount: 2480,
+          amountPaid: 0,
+          amountPending: 2480,
+          consignmentDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          notes: 'Consignación inicial sala San Pedro Sula.',
+          createdById: adminId,
+          confirmedById: adminId,
+          confirmedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          items: {
+            create: [
+              {
+                productId: marcoAzulCode.product.id,
+                productName: marcoAzulCode.product.name,
+                productPrimaryCode: 'AMD-MC-4050',
+                quantityOrdered: 4,
+                quantityPacked: 4,
+                quantityDispatched: 0,
+                unitPrice: 590,
+                discountType: 'FIXED',
+                discountValue: 0,
+                discountAmount: 0,
+                lineTotal: 2360,
+              },
+            ],
+          },
+        },
+      });
+
+      await prisma.product.update({
+        where: { id: marcoAzulCode.product.id },
+        data: { stock: Math.max(0, prevMarco3 - 4) },
+      });
+      await prisma.stockMovement.create({
+        data: {
+          productId: marcoAzulCode.product.id,
+          type: 'ORDER_PACK',
+          quantityDelta: -4,
+          previousStock: prevMarco3,
+          newStock: Math.max(0, prevMarco3 - 4),
+          reason: `Empaque pedido ${order3Num}`,
+          reference: order3Num,
+          performedById: adminId,
+        },
+      });
+    }
+  }
+
   console.log(
-    'Seed local completado (permisos, 4 usuarios, 12 clientes regionales y 14 productos multimoneda).',
+    'Seed local completado (permisos, 4 usuarios, 12 clientes regionales, 14 productos multimoneda y 3 pedidos demo).',
   );
 }
 

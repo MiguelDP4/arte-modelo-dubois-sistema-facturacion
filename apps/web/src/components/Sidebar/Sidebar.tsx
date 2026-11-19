@@ -7,6 +7,7 @@ import {
   BookOpen,
   Boxes,
   Building2,
+  ClipboardList,
   LayoutDashboard,
   Settings,
   Users,
@@ -32,6 +33,12 @@ const NAV_ITEMS: NavItem[] = [
     href: '/catalogo',
     label: 'Catálogo',
     icon: <BookOpen size={20} />,
+  },
+  {
+    href: '/pedidos',
+    label: 'Pedidos',
+    icon: <ClipboardList size={20} />,
+    requiredPermission: 'orders.read',
   },
   {
     href: '/productos',

@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
   email: string;
   fullName: string;
   role: Role;
+  customerId: string | null;
   permissions: PermissionCode[];
 }
 
@@ -57,6 +58,7 @@ export async function requireAuth(
       email: user.email,
       fullName: user.fullName,
       role,
+      customerId: user.customerId ?? null,
       permissions,
     };
 

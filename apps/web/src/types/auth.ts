@@ -6,6 +6,7 @@ export interface AuthUser {
   fullName: string;
   phone: string | null;
   role: Role;
+  customerId?: string | null;
   isActive: boolean;
   isVerified: boolean;
   createdAt: string;

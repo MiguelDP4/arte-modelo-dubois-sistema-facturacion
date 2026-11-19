@@ -1,4 +1,11 @@
-import type { CountryCode, Currency } from '@arte-modelo/shared';
+import type {
+  ApprovalStatus,
+  CountryCode,
+  Currency,
+  FulfillmentStatus,
+  OrderType,
+  PaymentStatus,
+} from '@arte-modelo/shared';
 
 export interface LinkedUserDto {
   id: string;
@@ -7,6 +14,20 @@ export interface LinkedUserDto {
   phone: string | null;
   isActive?: boolean;
   isVerified: boolean;
+}
+
+export interface CustomerOrderSummaryDto {
+  id: string;
+  orderNumber: string;
+  type: OrderType;
+  approvalStatus: ApprovalStatus;
+  fulfillmentStatus: FulfillmentStatus;
+  paymentStatus: PaymentStatus;
+  currency: Currency;
+  totalAmount: number;
+  amountPending: number;
+  consignmentDueDate: string | null;
+  createdAt: string;
 }
 
 export interface CustomerDto {
@@ -32,5 +53,5 @@ export interface CustomerDto {
 
 export interface CustomerDetailResponse {
   customer: CustomerDto;
-  orders: unknown[];
+  orders: CustomerOrderSummaryDto[];
 }
