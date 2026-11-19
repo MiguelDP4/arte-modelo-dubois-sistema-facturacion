@@ -16,22 +16,27 @@ import {
   type DiscountType,
   type OrderType,
 } from '@arte-modelo/shared';
-import { ArrowLeft, Info, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Info, Percent, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { apiClient, getApiErrorMessage } from '@/lib/api-client';
-import type { CatalogProduct, StaffProduct } from '@/types/catalog';
 import type { CustomerDto } from '@/types/customer';
 import type { LastPriceResponse, OrderDto } from '@/types/order';
+import {
+  ProductSearchSelect,
+  type SelectedProductOption,
+} from './ProductSearchSelect';
 import styles from './OrderForm.module.scss';
 
 interface DraftLine {
   key: string;
   productId: string;
+  selectedProduct: SelectedProductOption | null;
   quantityOrdered: string;
   unitPrice: string;
   discountType: DiscountType;
   discountValue: string;
+  showDiscount: boolean;
   minPacked: number;
   priceEditedManually: boolean;
 }
@@ -42,8 +47,8 @@ interface OrderFormProps {
   initialCustomerId?: string;
 }
 
-function getProductCurrencyPrice(
-  product: StaffProduct | undefined,
+function getOptionCurrencyPrice(
+  product: SelectedProductOption | null,
   currency: Currency,
 ): number {
   if (!product) return 0;
@@ -63,10 +68,12 @@ function createEmptyLine(index: number): DraftLine {
   return {
     key: `line-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
     productId: '',
+    selectedProduct: null,
     quantityOrdered: '1',
     unitPrice: '0',
     discountType: 'FIXED',
     discountValue: '0',
+    showDiscount: false,
     minPacked: 0,
     priceEditedManually: false,
   };
@@ -107,10 +114,18 @@ export function OrderForm({
       return initialOrder.items.map((item, idx) => ({
         key: `init-${item.id || idx}`,
         productId: item.productId,
+        selectedProduct: {
+          id: item.productId,
+          name: item.productName,
+          primaryCode: item.productPrimaryCode,
+          imageUrl: item.productImageUrl ?? null,
+          stock: item.currentStock ?? undefined,
+        },
         quantityOrdered: String(item.quantityOrdered),
         unitPrice: String(item.unitPrice ?? 0),
         discountType: item.discountType,
         discountValue: String(item.discountValue ?? 0),
+        showDiscount: (item.discountValue ?? 0) > 0,
         minPacked: item.quantityPacked,
         priceEditedManually: true,
       }));
@@ -134,22 +149,6 @@ export function OrderForm({
     },
   });
 
-  const productsQuery = useQuery({
-    queryKey: ['orders-form-products', isCustomerUser],
-    queryFn: async () => {
-      if (isCustomerUser) {
-        const res = await apiClient.get('/catalog', {
-          params: { pageSize: 0 },
-        });
-        return (res.data.products || []) as CatalogProduct[];
-      }
-      const res = await apiClient.get('/products', {
-        params: { pageSize: 0 },
-      });
-      return (res.data.products || []) as StaffProduct[];
-    },
-  });
-
   const selectedCustomer = useMemo(() => {
     if (initialOrder) {
       return initialOrder.customer;
@@ -158,14 +157,6 @@ export function OrderForm({
   }, [customersQuery.data, customerId, initialOrder]);
 
   const activeCurrency: Currency = selectedCustomer?.currency ?? 'GTQ';
-
-  const productLookup = useMemo(() => {
-    const map = new Map<string, CatalogProduct | StaffProduct>();
-    for (const p of productsQuery.data || []) {
-      map.set(p.id, p);
-    }
-    return map;
-  }, [productsQuery.data]);
 
   const fetchLastPriceForPair = async (
     targetCustomerId: string,
@@ -189,6 +180,9 @@ export function OrderForm({
             return { ...line, unitPrice: String(suggested) };
           }),
         );
+        if (info.hasHistory && info.lastPrice !== null) {
+          setActiveTooltipKey(lineKey);
+        }
       }
     } catch {
       // Silencioso si no hay historial; conserva el precio de catálogo
@@ -209,6 +203,7 @@ export function OrderForm({
 
   const handleCustomerChange = (nextCustomerId: string) => {
     setCustomerId(nextCustomerId);
+    setActiveTooltipKey(null);
     const nextCust = (customersQuery.data || []).find(
       (c) => c.id === nextCustomerId,
     );
@@ -216,27 +211,39 @@ export function OrderForm({
     setLines((prev) =>
       prev.map((line) => {
         if (!line.productId || line.priceEditedManually) return line;
-        const prod = productLookup.get(line.productId) as StaffProduct | undefined;
         return {
           ...line,
-          unitPrice: String(getProductCurrencyPrice(prod, nextCurr)),
+          unitPrice: String(
+            getOptionCurrencyPrice(line.selectedProduct, nextCurr),
+          ),
         };
       }),
     );
+
+    if (nextCustomerId) {
+      for (const line of lines) {
+        if (line.productId) {
+          void fetchLastPriceForPair(nextCustomerId, line.productId, line.key);
+        }
+      }
+    }
   };
 
-  const handleProductChange = (lineKey: string, nextProductId: string) => {
-    const prod = productLookup.get(nextProductId) as StaffProduct | undefined;
+  const handleProductSelect = (
+    lineKey: string,
+    chosen: SelectedProductOption,
+  ) => {
     const defaultPrice = isCustomerUser
       ? '0'
-      : String(getProductCurrencyPrice(prod, activeCurrency));
+      : String(getOptionCurrencyPrice(chosen, activeCurrency));
 
     setLines((prev) =>
       prev.map((line) =>
         line.key === lineKey
           ? {
               ...line,
-              productId: nextProductId,
+              productId: chosen.id,
+              selectedProduct: chosen,
               unitPrice: defaultPrice,
               priceEditedManually: false,
             }
@@ -244,15 +251,12 @@ export function OrderForm({
       ),
     );
 
-    if (!isCustomerUser && customerId && nextProductId) {
-      void fetchLastPriceForPair(customerId, nextProductId, lineKey);
+    if (!isCustomerUser && customerId && chosen.id) {
+      void fetchLastPriceForPair(customerId, chosen.id, lineKey);
     }
   };
 
-  const updateLineField = (
-    lineKey: string,
-    patch: Partial<DraftLine>,
-  ) => {
+  const updateLineField = (lineKey: string, patch: Partial<DraftLine>) => {
     setLines((prev) =>
       prev.map((l) => (l.key === lineKey ? { ...l, ...patch } : l)),
     );
@@ -303,7 +307,10 @@ export function OrderForm({
           notes: notes.trim() || null,
           items: lines.map((l) => ({
             productId: l.productId,
-            quantityOrdered: Math.max(1, Math.floor(Number(l.quantityOrdered) || 1)),
+            quantityOrdered: Math.max(
+              1,
+              Math.floor(Number(l.quantityOrdered) || 1),
+            ),
           })),
         });
         return res.data as { order: OrderDto; message: string };
@@ -325,7 +332,10 @@ export function OrderForm({
         notes: notes.trim() || null,
         items: lines.map((l) => ({
           productId: l.productId,
-          quantityOrdered: Math.max(1, Math.floor(Number(l.quantityOrdered) || 1)),
+          quantityOrdered: Math.max(
+            1,
+            Math.floor(Number(l.quantityOrdered) || 1),
+          ),
           unitPrice: Math.max(0, Number(l.unitPrice) || 0),
           discountType: l.discountType,
           discountValue: Math.max(0, Number(l.discountValue) || 0),
@@ -482,7 +492,9 @@ export function OrderForm({
           <button
             type="button"
             className={styles.secondaryBtn}
-            onClick={() => setLines((prev) => [...prev, createEmptyLine(prev.length)])}
+            onClick={() =>
+              setLines((prev) => [...prev, createEmptyLine(prev.length)])
+            }
           >
             <Plus size={16} /> Agregar producto
           </button>
@@ -492,38 +504,24 @@ export function OrderForm({
           {lines.map((line, index) => {
             const calc = lineComputations[index];
             const cacheKey =
-              customerId && line.productId ? `${customerId}:${line.productId}` : '';
+              customerId && line.productId
+                ? `${customerId}:${line.productId}`
+                : '';
             const lastPriceInfo = cacheKey ? lastPriceMap[cacheKey] : undefined;
-            const prod = line.productId
-              ? (productLookup.get(line.productId) as StaffProduct | undefined)
-              : undefined;
-            const catalogPrice =
-              lastPriceInfo?.catalogPrice ??
-              getProductCurrencyPrice(prod, activeCurrency);
+            const hasLastPriceHistory = Boolean(
+              !isCustomerUser &&
+                customerId &&
+                line.productId &&
+                lastPriceInfo?.hasHistory &&
+                lastPriceInfo.lastPrice !== null,
+            );
+            const excludedOtherIds = lines
+              .filter((other) => other.key !== line.key && other.productId)
+              .map((other) => other.productId);
+            const canRemove = lines.length > 1 && line.minPacked === 0;
 
             return (
               <div key={line.key} className={styles.lineCard}>
-                <div className={styles.lineHeader}>
-                  <strong>Línea #{index + 1}</strong>
-                  {lines.length > 1 ? (
-                    <button
-                      type="button"
-                      className={styles.dangerSmallBtn}
-                      disabled={line.minPacked > 0}
-                      title={
-                        line.minPacked > 0
-                          ? 'No puedes eliminar un ítem que ya tiene unidades empacadas'
-                          : 'Quitar línea'
-                      }
-                      onClick={() =>
-                        setLines((prev) => prev.filter((item) => item.key !== line.key))
-                      }
-                    >
-                      <Trash2 size={15} /> Quitar
-                    </button>
-                  ) : null}
-                </div>
-
                 <div
                   className={
                     isCustomerUser ? styles.customerLineGrid : styles.staffLineGrid
@@ -531,27 +529,15 @@ export function OrderForm({
                 >
                   <div className={styles.field}>
                     <label htmlFor={`line-prod-${index}`}>Producto</label>
-                    <select
+                    <ProductSearchSelect
                       id={`line-prod-${index}`}
-                      required
-                      value={line.productId}
+                      value={line.selectedProduct}
+                      excludedProductIds={excludedOtherIds}
+                      currency={activeCurrency}
+                      isCustomerMode={isCustomerUser}
                       disabled={line.minPacked > 0}
-                      onChange={(e) => handleProductChange(line.key, e.target.value)}
-                    >
-                      <option value="">Selecciona un producto...</option>
-                      {(productsQuery.data || []).map((p) => {
-                        const primaryCode = p.codes[0]?.code ?? '';
-                        const staffStock =
-                          !isCustomerUser && 'stock' in p ? ` · Stock: ${p.stock}` : '';
-                        return (
-                          <option key={p.id} value={p.id}>
-                            {primaryCode ? `[${primaryCode}] ` : ''}
-                            {p.name}
-                            {staffStock}
-                          </option>
-                        );
-                      })}
-                    </select>
+                      onSelect={(chosen) => handleProductSelect(line.key, chosen)}
+                    />
                   </div>
 
                   <div className={styles.field}>
@@ -570,19 +556,32 @@ export function OrderForm({
                     />
                     {line.minPacked > 0 ? (
                       <span className={styles.fieldHint}>
-                        Mínimo {line.minPacked} uds. ya empacadas
+                        Mín. {line.minPacked} empacadas
                       </span>
                     ) : null}
                   </div>
 
                   {!isCustomerUser ? (
                     <>
-                      <div className={styles.priceFieldWrap}>
+                      <div
+                        className={styles.priceFieldWrap}
+                        onBlur={(e) => {
+                          if (
+                            !e.currentTarget.contains(
+                              e.relatedTarget as Node | null,
+                            )
+                          ) {
+                            setActiveTooltipKey((curr) =>
+                              curr === line.key ? null : curr,
+                            );
+                          }
+                        }}
+                      >
                         <div className={styles.priceLabelRow}>
                           <label htmlFor={`line-price-${index}`}>
                             Precio unit. ({activeCurrency})
                           </label>
-                          {line.productId && customerId ? (
+                          {hasLastPriceHistory ? (
                             <button
                               type="button"
                               className={styles.tooltipToggleBtn}
@@ -593,7 +592,7 @@ export function OrderForm({
                                 )
                               }
                             >
-                              <Info size={15} />
+                              <Info size={14} />
                             </button>
                           ) : null}
                         </div>
@@ -605,9 +604,13 @@ export function OrderForm({
                           min="0"
                           required
                           value={line.unitPrice}
-                          onFocus={() => setActiveTooltipKey(line.key)}
+                          onFocus={() => {
+                            if (hasLastPriceHistory) {
+                              setActiveTooltipKey(line.key);
+                            }
+                          }}
                           onMouseEnter={() => {
-                            if (line.productId && customerId) {
+                            if (hasLastPriceHistory) {
                               setActiveTooltipKey(line.key);
                             }
                           }}
@@ -619,109 +622,130 @@ export function OrderForm({
                           }
                         />
 
-                        {line.productId && customerId && lastPriceInfo ? (
-                          <div
-                            role="tooltip"
-                            className={`${styles.priceTooltip} ${
-                              activeTooltipKey === line.key
-                                ? styles.priceTooltipActive
-                                : ''
-                            }`}
-                          >
-                            {lastPriceInfo.hasHistory &&
-                            lastPriceInfo.lastPrice !== null ? (
-                              <>
-                                <span>
-                                  Último precio aplicado a este cliente:{' '}
-                                  <strong>
-                                    {formatCurrency(
-                                      lastPriceInfo.lastPrice,
-                                      activeCurrency,
-                                    )}
-                                  </strong>{' '}
-                                  ({lastPriceInfo.lastOrderNumber})
-                                </span>
-                                <span className={styles.catalogSubHint}>
-                                  Catálogo:{' '}
-                                  {catalogPrice !== null
-                                    ? formatCurrency(catalogPrice, activeCurrency)
-                                    : 'No definido'}
-                                </span>
-                                <button
-                                  type="button"
-                                  className={styles.applyLastPriceBtn}
-                                  onClick={() =>
-                                    updateLineField(line.key, {
-                                      unitPrice: String(lastPriceInfo.lastPrice),
-                                      priceEditedManually: true,
-                                    })
-                                  }
-                                >
-                                  Usar último precio
-                                </button>
-                              </>
-                            ) : (
-                              <span>
-                                Último precio aplicado a este cliente: sin historial
-                                · Catálogo:{' '}
-                                <strong>
-                                  {catalogPrice !== null
-                                    ? formatCurrency(catalogPrice, activeCurrency)
-                                    : 'No definido'}
-                                </strong>
-                              </span>
-                            )}
+                        {hasLastPriceHistory &&
+                        lastPriceInfo &&
+                        activeTooltipKey === line.key ? (
+                          <div role="tooltip" className={styles.priceTooltip}>
+                            <span>
+                              Último precio aplicado a este cliente:{' '}
+                              <strong>
+                                {formatCurrency(
+                                  lastPriceInfo.lastPrice!,
+                                  activeCurrency,
+                                )}
+                              </strong>{' '}
+                              ({lastPriceInfo.lastOrderNumber})
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.applyLastPriceBtn}
+                              onClick={() => {
+                                updateLineField(line.key, {
+                                  unitPrice: String(lastPriceInfo.lastPrice),
+                                  priceEditedManually: true,
+                                });
+                                setActiveTooltipKey(null);
+                              }}
+                            >
+                              Usar último precio
+                            </button>
                           </div>
                         ) : null}
                       </div>
 
-                      <div className={styles.field}>
-                        <label htmlFor={`line-disc-type-${index}`}>
-                          Tipo descuento
-                        </label>
-                        <select
-                          id={`line-disc-type-${index}`}
-                          value={line.discountType}
-                          onChange={(e) =>
-                            updateLineField(line.key, {
-                              discountType: e.target.value as DiscountType,
-                            })
-                          }
-                        >
-                          {DISCOUNT_TYPES.map((dt) => (
-                            <option key={dt} value={dt}>
-                              {DISCOUNT_TYPE_LABELS[dt]}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className={styles.field}>
-                        <label htmlFor={`line-disc-val-${index}`}>Descuento</label>
-                        <input
-                          id={`line-disc-val-${index}`}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max={line.discountType === 'PERCENT' ? 100 : undefined}
-                          value={line.discountValue}
-                          onChange={(e) =>
-                            updateLineField(line.key, {
-                              discountValue: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-
                       <div className={styles.lineTotalBox}>
-                        <span>Total línea</span>
+                        <span>Subtotal</span>
                         <strong>
                           {formatCurrency(calc.lineTotal, activeCurrency)}
                         </strong>
                       </div>
                     </>
                   ) : null}
+
+                  <div className={styles.lineActions}>
+                    {!isCustomerUser ? (
+                      <button
+                        type="button"
+                        className={`${styles.iconBtn} ${
+                          line.showDiscount || Number(line.discountValue) > 0
+                            ? styles.iconBtnActive
+                            : ''
+                        }`}
+                        aria-label="Descuento de línea"
+                        aria-expanded={line.showDiscount}
+                        title="Agregar o editar descuento"
+                        onClick={() =>
+                          updateLineField(line.key, {
+                            showDiscount: !line.showDiscount,
+                          })
+                        }
+                      >
+                        <Percent size={16} />
+                      </button>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      className={styles.iconDangerBtn}
+                      aria-label="Quitar producto"
+                      title={
+                        line.minPacked > 0
+                          ? 'No puedes eliminar un ítem con unidades empacadas'
+                          : 'Quitar producto'
+                      }
+                      disabled={!canRemove}
+                      onClick={() =>
+                        setLines((prev) =>
+                          prev.filter((item) => item.key !== line.key),
+                        )
+                      }
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
+
+                {!isCustomerUser && line.showDiscount ? (
+                  <div className={styles.discountDrawer}>
+                    <div className={styles.field}>
+                      <label htmlFor={`line-disc-type-${index}`}>
+                        Tipo descuento
+                      </label>
+                      <select
+                        id={`line-disc-type-${index}`}
+                        value={line.discountType}
+                        onChange={(e) =>
+                          updateLineField(line.key, {
+                            discountType: e.target.value as DiscountType,
+                          })
+                        }
+                      >
+                        {DISCOUNT_TYPES.map((dt) => (
+                          <option key={dt} value={dt}>
+                            {DISCOUNT_TYPE_LABELS[dt]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor={`line-disc-val-${index}`}>Descuento</label>
+                      <input
+                        id={`line-disc-val-${index}`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={line.discountType === 'PERCENT' ? 100 : undefined}
+                        value={line.discountValue}
+                        onChange={(e) =>
+                          updateLineField(line.key, {
+                            discountValue: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -737,7 +761,9 @@ export function OrderForm({
         {!isCustomerUser ? (
           <div className={styles.twoCol}>
             <div className={styles.field}>
-              <label htmlFor="order-shipping">Flete / Envío ({activeCurrency})</label>
+              <label htmlFor="order-shipping">
+                Flete / Envío ({activeCurrency})
+              </label>
               <input
                 id="order-shipping"
                 type="number"
@@ -787,7 +813,10 @@ export function OrderForm({
               </strong>
             </div>
             <div className={styles.summaryRow}>
-              <span>Flete ({formatCurrency(totals.shippingCost, activeCurrency)} - desc. {formatCurrency(totals.shippingDiscount, activeCurrency)})</span>
+              <span>
+                Flete ({formatCurrency(totals.shippingCost, activeCurrency)} -
+                desc. {formatCurrency(totals.shippingDiscount, activeCurrency)})
+              </span>
               <strong>
                 {formatCurrency(
                   totals.shippingCost - totals.shippingDiscount,

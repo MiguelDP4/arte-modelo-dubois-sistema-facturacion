@@ -275,5 +275,5 @@ export function formatCurrency(amount: number, currency: Currency): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${CURRENCY_SYMBOLS[currency]} ${formatted}`;
+  return `${CURRENCY_SYMBOLS[currency]}\u00A0${formatted}`;
 }

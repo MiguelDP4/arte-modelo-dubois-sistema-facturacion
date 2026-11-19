@@ -22,13 +22,6 @@
   @include button-secondary;
 }
 
-.dangerSmallBtn {
-  @include button-danger;
-  min-height: 44px;
-  padding: 6px 12px;
-  font-size: 0.84rem;
-}
-
 .card {
   @include card-surface;
   display: flex;
@@ -90,43 +83,79 @@
 .linesList {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .lineCard {
   background-color: var(--background-surface);
   box-shadow: var(--shadow-xs);
-  padding: 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.lineHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .customerLineGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
 
-  @media (min-width: 640px) {
-    grid-template-columns: 2fr 1fr;
+  @media (min-width: 768px) {
+    grid-template-columns: minmax(260px, 1fr) 110px auto;
+    align-items: end;
   }
 }
 
 .staffLineGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
 
   @media (min-width: 900px) {
-    grid-template-columns: 2.2fr 0.8fr 1.2fr 1fr 0.9fr 0.9fr;
-    align-items: start;
+    grid-template-columns: minmax(260px, 2.5fr) 92px 136px 115px auto;
+    align-items: end;
+  }
+}
+
+.lineActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.iconBtn {
+  @include button-secondary;
+  width: var(--touch-min);
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0;
+}
+
+.iconBtnActive {
+  background-color: var(--brand-themed-dark);
+  color: var(--text-on-brand);
+  border-color: transparent;
+}
+
+.iconDangerBtn {
+  @include button-danger;
+  width: var(--touch-min);
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0;
+}
+
+.discountDrawer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+
+  @media (min-width: 640px) {
+    grid-template-columns: 1fr 1fr;
+    max-width: 440px;
   }
 }
 
@@ -139,15 +168,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
+
+  label {
+    white-space: nowrap;
+  }
 }
 
 .tooltipToggleBtn {
   border: 1px solid var(--border-secondary);
   background-color: var(--background-elevated);
   color: var(--text-primary);
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -156,24 +189,20 @@
 }
 
 .priceTooltip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 240px;
+  z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 8px 10px;
   background-color: var(--color-info-bg);
   color: var(--color-info);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-md);
   font-size: 0.8rem;
   line-height: 1.35;
-}
-
-.priceTooltipActive {
-  box-shadow: var(--shadow-md);
-}
-
-.catalogSubHint {
-  font-size: 0.76rem;
-  color: var(--text-secondary);
 }
 
 .applyLastPriceBtn {
@@ -184,7 +213,7 @@
   font-size: 0.76rem;
   font-weight: 700;
   padding: 4px 8px;
-  min-height: 30px;
+  min-height: 28px;
   cursor: pointer;
   border-radius: 0;
 }
@@ -193,7 +222,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  justify-content: center;
+  justify-content: flex-end;
   min-height: var(--touch-min);
 
   span {
@@ -203,8 +232,13 @@
   }
 
   strong {
-    font-size: 1rem;
+    font-size: 0.96rem;
+    min-height: var(--touch-min);
+    display: flex;
+    align-items: center;
     color: var(--text-primary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -224,8 +258,16 @@
   font-size: 0.94rem;
   color: var(--text-secondary);
 
+  span {
+    flex: 1;
+    min-width: 0;
+  }
+
   strong {
     color: var(--text-primary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
   }
 }
 

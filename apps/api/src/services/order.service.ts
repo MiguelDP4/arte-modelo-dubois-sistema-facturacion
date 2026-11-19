@@ -45,7 +45,15 @@ const orderDetailInclude = {
     orderBy: [{ createdAt: 'asc' as const }, { productName: 'asc' as const }],
     include: {
       product: {
-        select: { id: true, stock: true },
+        select: {
+          id: true,
+          stock: true,
+          images: {
+            orderBy: { sortOrder: 'asc' as const },
+            take: 1,
+            select: { url: true },
+          },
+        },
       },
     },
   },
@@ -162,7 +170,11 @@ function serializeOrder(
       discountValue: number;
       discountAmount: number;
       lineTotal: number;
-      product?: { id: string; stock: number } | null;
+      product?: {
+        id: string;
+        stock: number;
+        images?: Array<{ url: string }>;
+      } | null;
     }>;
     dispatches?: Array<{
       id: string;
@@ -249,6 +261,7 @@ function serializeOrder(
       ),
       currentStock:
         actor.role !== 'CUSTOMER' ? (item.product?.stock ?? null) : null,
+      productImageUrl: item.product?.images?.[0]?.url ?? null,
       unitPrice: hidePrices ? null : item.unitPrice,
       discountType: item.discountType as DiscountType,
       discountValue: hidePrices ? null : item.discountValue,

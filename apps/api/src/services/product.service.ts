@@ -100,13 +100,30 @@ function normalizeCodes(
   }));
 }
 
+function parseExcludeIds(raw: unknown): string[] {
+  const items = Array.isArray(raw)
+    ? raw.map((v) => String(v))
+    : typeof raw === 'string'
+      ? raw.split(',')
+      : [];
+  return Array.from(
+    new Set(items.map((id) => id.trim()).filter(Boolean)),
+  );
+}
+
 function buildProductSearchWhere(
   search: string | undefined,
   includeArchived: boolean,
+  excludeIds?: unknown,
 ) {
   const where: Record<string, unknown> = includeArchived
     ? {}
     : { isActive: true, deletedAt: null };
+
+  const excluded = parseExcludeIds(excludeIds);
+  if (excluded.length > 0) {
+    where.id = { notIn: excluded };
+  }
 
   const term = search?.trim();
   if (term) {
@@ -122,11 +139,12 @@ function buildProductSearchWhere(
 
 export async function listPublicCatalog(query: {
   search?: string;
+  excludeIds?: unknown;
   page?: unknown;
   pageSize?: unknown;
 }) {
   const { page, pageSize } = parsePaginationQuery(query);
-  const where = buildProductSearchWhere(query.search, false);
+  const where = buildProductSearchWhere(query.search, false, query.excludeIds);
 
   const total = await prisma.product.count({ where });
   const pagination = buildPaginationMeta(total, page, pageSize);
@@ -160,6 +178,7 @@ export async function listProducts(
     search?: string;
     includeArchived?: boolean;
     lowStockOnly?: boolean;
+    excludeIds?: unknown;
     page?: unknown;
     pageSize?: unknown;
   },
@@ -169,6 +188,7 @@ export async function listProducts(
   const where = buildProductSearchWhere(
     query.search,
     Boolean(query.includeArchived),
+    query.excludeIds,
   );
 
   if (includePrices && query.lowStockOnly) {

@@ -236,6 +236,7 @@ describe('Orders Module Pages (Phase 4)', () => {
                 priceUSD: 24,
                 stock: 15,
                 codes: [{ code: 'AMD-MC-01', label: 'Interno', isPrimary: true }],
+                images: [{ url: '/seed/marco-clasico.svg', altText: 'Marco' }],
               },
             ],
           },
@@ -264,17 +265,20 @@ describe('Orders Module Pages (Phase 4)', () => {
       expect(
         screen.getByRole('option', { name: /Decoraciones El Quetzal/i }),
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('option', { name: /Marco Clásico Azul/i }),
-      ).toBeInTheDocument();
     });
+
+    expect(screen.queryByText(/Línea #1/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitar producto' })).toHaveTextContent('');
+    expect(screen.queryByLabelText('Tipo descuento')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Cliente'), {
       target: { value: 'cust-1' },
     });
-    fireEvent.change(screen.getByLabelText('Producto'), {
-      target: { value: 'prod-1' },
-    });
+
+    fireEvent.click(screen.getByLabelText('Producto'));
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Marco Clásico Azul/i }),
+    );
 
     await waitFor(() => {
       expect(
@@ -284,6 +288,8 @@ describe('Orders Module Pages (Phase 4)', () => {
     expect(screen.getByText(/PED-2026-0000/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Usar último precio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Descuento de línea' }));
+    expect(screen.getByLabelText('Tipo descuento')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Cantidad'), {
       target: { value: '4' },
     });
@@ -325,6 +331,7 @@ describe('Orders Module Pages (Phase 4)', () => {
             id: 'prod-1',
             name: 'Marco Clásico Azul',
             codes: [{ code: 'AMD-MC-01', label: 'Interno', isPrimary: true }],
+            images: [],
           },
         ],
       },
@@ -333,18 +340,20 @@ describe('Orders Module Pages (Phase 4)', () => {
     renderApp(<NuevoPedidoPage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('option', { name: /Marco Clásico Azul/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
     expect(screen.queryByLabelText('Cliente')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Flete/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Precio unit\./i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Descuento de línea' }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Producto'), {
-      target: { value: 'prod-1' },
-    });
+    fireEvent.click(screen.getByRole('combobox'));
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Marco Clásico Azul/i }),
+    );
     fireEvent.change(screen.getByLabelText('Cantidad'), {
       target: { value: '3' },
     });
@@ -588,17 +597,81 @@ describe('Orders Module Pages (Phase 4)', () => {
     });
     unlinked.unmount();
 
-    // Staff CONSIGNMENT toggle + add/remove lines on /pedidos/nuevo
+    // Staff CONSIGNMENT toggle + add/remove lines + no tooltip when hasHistory=false
     mockedApi.post.mockResolvedValue(staffSession);
     mockedApi.get.mockImplementation(async (url: string) => {
-      if (url === '/customers') return { data: { customers: [] } };
-      if (url === '/products') return { data: { products: [] } };
+      if (url === '/customers') {
+        return {
+          data: {
+            customers: [
+              {
+                id: 'cust-1',
+                companyName: 'Decoraciones El Quetzal, S.A.',
+                countryLabel: 'Guatemala',
+                currency: 'GTQ',
+                isActive: true,
+              },
+            ],
+          },
+        };
+      }
+      if (url === '/products') {
+        return {
+          data: {
+            products: [
+              {
+                id: 'prod-new',
+                name: 'Espejo Nuevo',
+                priceGTQ: 320,
+                stock: 8,
+                codes: [{ code: 'AMD-ESP', label: 'Interno', isPrimary: true }],
+                images: [],
+              },
+            ],
+          },
+        };
+      }
+      if (url === '/orders/last-price') {
+        return {
+          data: {
+            customerId: 'cust-1',
+            productId: 'prod-new',
+            currency: 'GTQ',
+            catalogPrice: 320,
+            lastPrice: null,
+            lastOrderNumber: null,
+            lastOrderDate: null,
+            hasHistory: false,
+          },
+        };
+      }
       return { data: {} };
     });
     const newStaff = renderApp(<NuevoPedidoPage />);
     await waitFor(() => {
-      expect(screen.getByLabelText('Tipo de pedido')).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: /Decoraciones El Quetzal/i }),
+      ).toBeInTheDocument();
     });
+    fireEvent.change(screen.getByLabelText('Cliente'), {
+      target: { value: 'cust-1' },
+    });
+    fireEvent.click(screen.getByLabelText('Producto'));
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Espejo Nuevo/i }),
+    );
+    await waitFor(() => {
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        '/orders/last-price',
+        expect.anything(),
+      );
+    });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(screen.queryByText(/sin historial/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Último precio aplicado a este cliente:/i),
+    ).not.toBeInTheDocument();
+
     fireEvent.change(screen.getByLabelText('Tipo de pedido'), {
       target: { value: 'CONSIGNMENT' },
     });
@@ -606,9 +679,10 @@ describe('Orders Module Pages (Phase 4)', () => {
       screen.getByLabelText('Fecha sugerida de revisión'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Agregar producto/i }));
-    expect(screen.getAllByRole('button', { name: /Quitar/i })).toHaveLength(2);
-    fireEvent.click(screen.getAllByRole('button', { name: /Quitar/i })[1]);
-    expect(screen.queryByRole('button', { name: /Quitar/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Quitar producto' })).toHaveLength(2);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Quitar producto' })[1]);
+    expect(screen.getAllByRole('button', { name: 'Quitar producto' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Quitar producto' })).toBeDisabled();
     newStaff.unmount();
 
     // EditarPedidoPage: CANCELLED and not-found states

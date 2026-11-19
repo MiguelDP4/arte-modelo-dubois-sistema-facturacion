@@ -106,9 +106,9 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 | `DELETE` | `/api/users/:id` | `users.delete` | Desactivación lógica segura y revocación inmediata de refresh tokens. |
 | `GET` | `/api/permissions` | `permissions.manage` | Devuelve la matriz de permisos paginable (`page`, `pageSize`; `pageSize=0` por defecto devuelve todos). |
 | `PUT` | `/api/permissions/role/:role` | `permissions.manage` | Actualiza permisos de un rol fijo (protegiendo permisos críticos de `ADMIN`). |
-| `GET` | `/api/catalog` | Público | Catálogo público paginado (`page`, `pageSize`; `0` = todos) con búsqueda por código/nombre; **excluye precios y stock** (sin categorías). |
+| `GET` | `/api/catalog` | Público | Catálogo público paginado (`page`, `pageSize`; `0` = todos) con búsqueda por código/nombre y parámetro opcional `excludeIds`; **excluye precios y stock** (sin categorías). |
 | `GET` | `/api/catalog/:id` | Público | Detalle público de producto sin precios ni stock. |
-| `GET` | `/api/products` | `products.read` | Lista productos paginados (`page`, `pageSize`; `0` = todos) con búsqueda unificada por cualquier código (solo incluye precios/stock si tiene `products.read_prices`). |
+| `GET` | `/api/products` | `products.read` | Lista productos paginados (`page`, `pageSize`; `0` = todos) con búsqueda unificada por cualquier código y parámetro opcional `excludeIds` (solo incluye precios/stock si tiene `products.read_prices`). |
 | `GET` | `/api/products/:id` | `products.read` | Detalle interno de producto respetando `products.read_prices`. |
 | `POST` | `/api/products` | `products.manage` | Crea producto multimoneda, códigos múltiples, imágenes e inventario inicial (`StockMovement`). |
 | `PATCH` | `/api/products/:id` | `products.manage` | Actualiza datos, precios, códigos múltiples e imágenes sin mutar stock directamente. |
@@ -152,7 +152,7 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 - `/login`, `/registro`, `/verificar-cuenta`, `/registro-invitado` — Flujos de acceso y registro público.
 - `/` — Dashboard inicial con accesos rápidos por permiso.
 - `/catalogo` — Catálogo público (sin precios/stock) y consulta interna para staff con galería modal.
-- `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]` y `/pedidos/[id]/editar` — Listado paginado de pedidos B2B, creación para staff (con tooltip de último precio) y clientes, confirmación, empaque por delta y despachos parciales/totales.
+- `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]` y `/pedidos/[id]/editar` — Listado paginado de pedidos B2B, creación/edición para staff y clientes con `ProductSearchSelect` (búsqueda perezosa con debounce `1000 ms`, exclusión de repetidos y tooltip condicional solo con historial previo), confirmación, empaque por delta y despachos parciales/totales.
 - `/productos` — Gestión de catálogo multimoneda, códigos múltiples, subida de fotos y Kardex (`products.read_prices`).
 - `/clientes` y `/clientes/[id]` — Cartera regional con etiqueta fiscal dinámica y vinculación de usuarios (`customers.read`).
 - `/usuarios` — Gestión de usuarios e invitaciones (`users.read`).

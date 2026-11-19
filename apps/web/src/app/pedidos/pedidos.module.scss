@@ -49,6 +49,11 @@
   }
 }
 
+.moneyValue {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .badgesCol {
   display: flex;
   flex-wrap: wrap;

@@ -23,6 +23,14 @@ Todos los cambios relevantes del proyecto se registran en este archivo siguiendo
   - Tooltip inteligente en captura de precio unitario (`"Último precio aplicado a este cliente: ..."` con botón rápido `"Usar último precio"`), modales de empaque con vista previa del delta de stock, despachos parciales/totales e historial real de pedidos dentro de `/clientes/[id]`.
   - Suites actualizadas: Vitest en `shared`, `api` y `web` (>85% cobertura) + E2E Playwright Fase 4 (Desktop + Mobile).
 
+### Mejorado
+- **Selector de Productos Perezoso y Experiencia de Líneas (`ProductSearchSelect` & `OrderForm`):**
+  - Reemplazado el `<select>` precargado por el combobox `ProductSearchSelect`: nunca descarga el catálogo completo al abrir `/pedidos/nuevo` o `/pedidos/[id]/editar`, muestra el placeholder `"Buscar un producto..."`, aplica **debounce estricto de `1000 ms`** antes de consultar la API, excluye productos ya agregados al pedido (`?excludeIds` en `/api/catalog` y `/api/products` + filtro local) y despliega resultados con miniatura, nombre y precio en la moneda local del cliente (ocultando precios/stock cuando opera un `CUSTOMER`).
+  - Filas de pedido compactas: eliminado el encabezado `"Línea #N"`, botón de eliminar alineado inline únicamente con ícono de basurero (`Trash2`, sin texto `"Quitar"`), selector/monto de descuento ocultos detrás de botón con ícono (`Percent`) y tooltip de último precio renderizado únicamente cuando existe historial real de ventas previas para ese `(cliente, producto)` (sin mostrar `"sin historial"`).
+- **Legibilidad Monetaria y Controles Numéricos:**
+  - `formatCurrency` une el símbolo monetario y las cifras mediante espacio inseparable (`\u00A0`) combinado con `white-space: nowrap; font-variant-numeric: tabular-nums; flex-shrink: 0` en detalle y listados de pedidos para evitar saltos de línea con montos de 7 o más dígitos.
+  - Ocultamiento global de flechas/spin buttons en todos los `<input type="number">` mediante `globals.scss`.
+
 ## [2.0.0-alpha.2] — Fase 2 & Fase 3 (Catálogo Multimoneda, Kardex y Cartera Regional de Clientes)
 
 ### Agregado

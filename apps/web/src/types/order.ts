@@ -33,6 +33,7 @@ export interface OrderItemDto {
   quantityDispatched: number;
   quantityPendingDispatch: number;
   currentStock: number | null;
+  productImageUrl?: string | null;
   unitPrice: number | null;
   discountType: DiscountType;
   discountValue: number | null;

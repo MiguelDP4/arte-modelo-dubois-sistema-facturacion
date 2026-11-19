@@ -132,7 +132,7 @@ function PedidosContent() {
       header: 'Total / Saldo',
       render: (order) =>
         order.pricesVisible && order.totalAmount !== null ? (
-          <div className={styles.orderCell}>
+          <div className={`${styles.orderCell} ${styles.moneyValue}`}>
             <strong>{formatCurrency(order.totalAmount, order.currency)}</strong>
             <span>
               Pendiente:{' '}

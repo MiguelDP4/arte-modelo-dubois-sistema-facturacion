@@ -240,7 +240,7 @@ function OrderDetailContent() {
             key: 'price',
             header: 'Precio / Desc.',
             render: (item: OrderItemDto) => (
-              <div className={styles.itemCell}>
+              <div className={`${styles.itemCell} ${styles.moneyCell}`}>
                 <strong>
                   {formatCurrency(item.unitPrice ?? 0, order.currency)}
                 </strong>
@@ -289,7 +289,7 @@ function OrderDetailContent() {
             key: 'lineTotal',
             header: 'Subtotal',
             render: (item: OrderItemDto) => (
-              <strong>
+              <strong className={styles.moneyCell}>
                 {formatCurrency(item.lineTotal ?? 0, order.currency)}
               </strong>
             ),

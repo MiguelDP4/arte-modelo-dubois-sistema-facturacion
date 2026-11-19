@@ -57,9 +57,10 @@ describe('shared constants & currency helpers', () => {
     expect(COUNTRY_TAX_LABEL.NI).toBe('RUC');
   });
 
-  it('formats currencies safely including non-finite fallback', () => {
+  it('formats currencies safely including non-finite fallback and non-breaking spaces', () => {
     expect(formatCurrency(1250.5, 'GTQ')).toContain('Q');
     expect(formatCurrency(1250.5, 'GTQ')).toContain('1');
+    expect(formatCurrency(1234567.89, 'GTQ')).toContain('Q\u00A0');
     expect(formatCurrency(99, 'USD')).toContain('$');
     expect(formatCurrency(Number.NaN, 'HNL')).toContain('L');
     expect(formatCurrency(Number.NaN, 'HNL')).toContain('0.00');

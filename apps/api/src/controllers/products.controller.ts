@@ -9,6 +9,7 @@ export async function listPublicCatalog(
   try {
     const result = await productService.listPublicCatalog({
       search: typeof req.query.search === 'string' ? req.query.search : undefined,
+      excludeIds: req.query.excludeIds,
       page: req.query.page,
       pageSize: req.query.pageSize,
     });
@@ -43,6 +44,7 @@ export async function list(req: Request, res: Response, next: NextFunction) {
           typeof req.query.search === 'string' ? req.query.search : undefined,
         includeArchived: req.query.includeArchived === 'true',
         lowStockOnly: req.query.lowStockOnly === 'true',
+        excludeIds: req.query.excludeIds,
         page: req.query.page,
         pageSize: req.query.pageSize,
       },
