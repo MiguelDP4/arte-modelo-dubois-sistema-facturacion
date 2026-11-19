@@ -183,12 +183,6 @@ export const createProductSchema = z.object({
     .max(1000, 'La descripción no puede superar 1000 caracteres.')
     .nullable()
     .optional(),
-  category: z
-    .string()
-    .trim()
-    .max(80, 'La categoría no puede superar 80 caracteres.')
-    .nullable()
-    .optional(),
   codes: z
     .array(productCodeInputSchema)
     .min(1, 'Debes registrar al menos un código para el producto.'),
@@ -223,12 +217,6 @@ export const updateProductSchema = z.object({
     .string()
     .trim()
     .max(1000, 'La descripción no puede superar 1000 caracteres.')
-    .nullable()
-    .optional(),
-  category: z
-    .string()
-    .trim()
-    .max(80, 'La categoría no puede superar 80 caracteres.')
     .nullable()
     .optional(),
   codes: z

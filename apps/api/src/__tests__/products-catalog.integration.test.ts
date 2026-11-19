@@ -69,7 +69,6 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
       .send({
         name: 'Marco Dorado Imperial',
         description: 'Acabado fino en oro envejecido',
-        category: 'Marcos',
         codes: [
           { code: 'amd-001', label: 'Interno', isPrimary: true },
           { code: 'prov-7788', label: 'Proveedor', isPrimary: false },
@@ -88,15 +87,25 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
     const productId = createRes.body.product.id as string;
     expect(createRes.body.product.codes).toHaveLength(3);
     expect(createRes.body.product.priceGTQ).toBe(220);
+    expect(createRes.body.product).not.toHaveProperty('category');
 
-    // Public catalog works without token and strictly excludes prices & stock
+    // Public catalog works without token and strictly excludes prices, stock & categories
     const catalogList = await request(app).get('/api/catalog?search=PROV-7788');
     expect(catalogList.status).toBe(200);
-    expect(catalogList.body.categories).toContain('Marcos');
+    expect(catalogList.body).not.toHaveProperty('categories');
     expect(catalogList.body.products).toHaveLength(1);
+    expect(catalogList.body.pagination).toEqual({
+      page: 1,
+      pageSize: 10,
+      total: 1,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
 
     const publicItem = catalogList.body.products[0];
     expect(publicItem.name).toBe('Marco Dorado Imperial');
+    expect(publicItem).not.toHaveProperty('category');
     expect(publicItem.codes.map((c: { code: string }) => c.code)).toContain('PROV-7788');
     expect(publicItem).not.toHaveProperty('priceGTQ');
     expect(publicItem).not.toHaveProperty('priceHNL');
@@ -144,7 +153,6 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         name: 'Espejo Biselado',
-        category: 'Espejos',
         codes: [{ code: 'ESP-100', label: 'Interno', isPrimary: true }],
         priceGTQ: 350,
         initialStock: 10,
@@ -268,6 +276,60 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
       .set('Authorization', `Bearer ${admin.token}`);
     expect(restoreRes.status).toBe(200);
     expect((await request(app).get('/api/catalog')).body.products).toHaveLength(1);
+  });
+
+  it('paginates /api/catalog and /api/products including lowStockOnly filtering', async () => {
+    const admin = await createAndLogin({
+      email: 'admin@artemodelo.gt',
+      fullName: 'Admin',
+      role: 'ADMIN',
+    });
+
+    for (let i = 1; i <= 4; i++) {
+      await request(app)
+        .post('/api/products')
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({
+          name: `Producto Paginado ${String(i).padStart(2, '0')}`,
+          codes: [{ code: `PAG-${i}`, label: 'Interno', isPrimary: true }],
+          priceGTQ: 100 + i,
+          initialStock: i <= 2 ? 3 : 25,
+          lowStockThreshold: 5,
+        });
+    }
+
+    const page1 = await request(app).get('/api/catalog?page=1&pageSize=2');
+    expect(page1.status).toBe(200);
+    expect(page1.body.products).toHaveLength(2);
+    expect(page1.body.pagination).toEqual({
+      page: 1,
+      pageSize: 2,
+      total: 4,
+      totalPages: 2,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    const page2 = await request(app).get('/api/catalog?page=2&pageSize=2');
+    expect(page2.status).toBe(200);
+    expect(page2.body.products).toHaveLength(2);
+    expect(page2.body.pagination.hasPrev).toBe(true);
+    expect(page2.body.pagination.hasNext).toBe(false);
+
+    // Oversized page clamps to totalPages, and lowStockOnly filters in pagination
+    const lowStockPage = await request(app)
+      .get('/api/products?lowStockOnly=true&page=9&pageSize=1')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(lowStockPage.status).toBe(200);
+    expect(lowStockPage.body.products).toHaveLength(1);
+    expect(lowStockPage.body.pagination).toEqual({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPrev: true,
+      hasNext: false,
+    });
   });
 
   it('uploads product image to local fallback storage and serves it safely', async () => {

@@ -127,6 +127,37 @@ describe('Regional Customers & Account Linking API integration', () => {
       .set('Authorization', `Bearer ${admin.token}`);
     expect(hnFilter.status).toBe(200);
     expect(hnFilter.body.customers).toHaveLength(1);
+    expect(hnFilter.body.pagination).toEqual({
+      page: 1,
+      pageSize: 10,
+      total: 1,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+
+    // API pagination across 2 active customers
+    const page1 = await request(app)
+      .get('/api/customers?page=1&pageSize=1')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(page1.status).toBe(200);
+    expect(page1.body.customers).toHaveLength(1);
+    expect(page1.body.pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    const page2 = await request(app)
+      .get('/api/customers?page=2&pageSize=1')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(page2.status).toBe(200);
+    expect(page2.body.customers).toHaveLength(1);
+    expect(page2.body.pagination.hasPrev).toBe(true);
+    expect(page2.body.pagination.hasNext).toBe(false);
 
     // Update customer country to GT -> updates currency to GTQ & taxLabel to NIT
     const updated = await request(app)

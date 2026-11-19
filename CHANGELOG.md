@@ -5,16 +5,18 @@ Todos los cambios relevantes del proyecto se registran en este archivo siguiendo
 ## [2.0.0-alpha.2] — Fase 2 & Fase 3 (Catálogo Multimoneda, Kardex y Cartera Regional de Clientes)
 
 ### Agregado
-- **Fase 2 — Catálogo Multimoneda, Códigos Múltiples y Kardex (`F2-01` a `F2-03`):**
-  - Modelos Prisma `Product`, `ProductCode`, `ProductImage` y `StockMovement` en esquemas PostgreSQL y SQLite.
+- **Fase 2 — Catálogo Multimoneda, Códigos Múltiples, Kardex y Paginación (`F2-01` a `F2-04`):**
+  - Modelos Prisma `Product`, `ProductCode`, `ProductImage` y `StockMovement` en esquemas PostgreSQL y SQLite (sin campo de categoría en productos).
   - Endpoints `/api/catalog` público (estrictamente sin precios ni stock) y `/api/products` autenticado con control RBAC (`products.read`, `products.read_prices`, `products.manage`), búsqueda unificada por nombre o cualquier código registrado, soft-delete/restauración y Kardex transaccional (`INITIAL`, `MANUAL_IN`, `MANUAL_OUT`, `MANUAL_ADJUST`).
+  - Paginación real a nivel de API (`page`, `pageSize` seleccionable: `10`, `20`, `50`, `100` y metadatos `pagination`) en `/api/catalog`, `/api/products`, `/api/customers` y `/api/users` con componente reutilizable `Pagination`.
+  - Debounce estricto de **1 segundo (`1000 ms`)** mediante `useDebouncedValue` en todos los buscadores (`/catalogo`, `/productos`, `/clientes`, `/usuarios`) para evitar múltiples consultas por pulsación de tecla.
   - Subida de fotografías con compresión en cliente y almacenamiento en Cloudflare R2 (o fallback local `/api/uploads/product-image`).
   - Vistas Mobile-First `/catalogo` (visitante y staff) y `/productos` (tabla responsive/cards, editor dinámico de códigos múltiples, galería modal y Kardex).
 - **Fase 3 — Cartera Regional de Clientes (`F3-01` a `F3-02`):**
   - Modelo `Customer` con moneda automática por país (`GT` → `GTQ`, `HN` → `HNL`, `NI` → `NIO`, `SV`/`OTHER` → `USD`) y etiqueta fiscal dinámica (`NIT`, `RTN`, `RUC`, `DTE / NIT`, `ID Fiscal`).
-  - Endpoints `/api/customers` 100% protegidos por autenticación/permisos (`customers.read`, `customers.manage`), con vinculación y desvinculación de cuentas de usuario `CUSTOMER` y bloqueo de desactivación mientras existan cuentas vinculadas.
+  - Endpoints `/api/customers` 100% protegidos por autenticación/permisos (`customers.read`, `customers.manage`), con paginación, vinculación y desvinculación de cuentas de usuario `CUSTOMER` y bloqueo de desactivación mientras existan cuentas vinculadas.
   - Vistas `/clientes` y `/clientes/[id]` Mobile-First.
-  - Seed realista en `apps/api/src/db/seed.ts` (4 usuarios, 4 clientes regionales y 6 productos multimoneda con múltiples códigos e imágenes SVG locales).
+  - Seed realista ampliado en `apps/api/src/db/seed.ts` (4 usuarios, 12 clientes regionales y 14 productos multimoneda con múltiples códigos e imágenes SVG locales para probar paginación de inmediato).
 
 ## [2.0.0-alpha.1] — Fase 0 & Fase 1 (Fundación, Diseño, Auth y RBAC Real)
 

@@ -18,7 +18,6 @@ export interface CatalogProduct {
   id: string;
   name: string;
   description: string | null;
-  category: string | null;
   codes: ProductCodeDto[];
   images: ProductImageDto[];
   createdAt: string;

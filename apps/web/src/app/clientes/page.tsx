@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,7 +8,10 @@ import {
   COUNTRY_CURRENCY,
   COUNTRY_LABELS,
   COUNTRY_TAX_LABEL,
+  DEFAULT_PAGE_SIZE,
+  SEARCH_DEBOUNCE_MS,
   type CountryCode,
+  type PaginationMeta,
 } from '@arte-modelo/shared';
 import { Building2, Eye, Pencil, Plus, UserCheck, UserX } from 'lucide-react';
 import { AppShell } from '@/components/AppShell/AppShell';
@@ -16,10 +19,12 @@ import {
   ResponsiveTable,
   type TableColumn,
 } from '@/components/ResponsiveTable/ResponsiveTable';
+import { Pagination } from '@/components/Pagination/Pagination';
 import { Modal } from '@/components/Modal/Modal';
 import { ConfirmModal } from '@/components/Modal/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiClient, getApiErrorMessage } from '@/lib/api-client';
 import type { CustomerDto } from '@/types/customer';
 import styles from './clientes.module.scss';
@@ -32,8 +37,15 @@ function ClientesContent() {
   const canManage = hasPermission('customers.manage');
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
   const [countryFilter, setCountryFilter] = useState('ALL');
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Form modal
   const [formOpen, setFormOpen] = useState(false);
@@ -51,14 +63,27 @@ function ClientesContent() {
   const [confirmTarget, setConfirmTarget] = useState<CustomerDto | null>(null);
 
   const customersQuery = useQuery({
-    queryKey: ['customers', search, countryFilter, includeInactive],
+    queryKey: [
+      'customers',
+      debouncedSearch,
+      countryFilter,
+      includeInactive,
+      page,
+      pageSize,
+    ],
     queryFn: async () => {
-      const params: Record<string, string> = {};
-      if (search.trim()) params.search = search.trim();
+      const params: Record<string, string | number> = {
+        page,
+        pageSize,
+      };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (countryFilter !== 'ALL') params.country = countryFilter;
       if (includeInactive) params.includeInactive = 'true';
       const res = await apiClient.get('/customers', { params });
-      return (res.data.customers || []) as CustomerDto[];
+      return res.data as {
+        customers: CustomerDto[];
+        pagination?: PaginationMeta;
+      };
     },
   });
 
@@ -264,6 +289,11 @@ function ClientesContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search.trim() !== debouncedSearch.trim() && (
+            <span className={styles.debounceHint} role="status">
+              Esperando 1s para buscar...
+            </span>
+          )}
         </div>
 
         <div className={styles.field}>
@@ -271,7 +301,10 @@ function ClientesContent() {
           <select
             id="cust-country-filter"
             value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
+            onChange={(e) => {
+              setCountryFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="ALL">Todos los países</option>
             {COUNTRIES.map((code) => (
@@ -287,7 +320,10 @@ function ClientesContent() {
             <input
               type="checkbox"
               checked={includeInactive}
-              onChange={(e) => setIncludeInactive(e.target.checked)}
+              onChange={(e) => {
+                setIncludeInactive(e.target.checked);
+                setPage(1);
+              }}
             />
             Mostrar clientes desactivados
           </label>
@@ -297,13 +333,27 @@ function ClientesContent() {
       {customersQuery.isLoading ? (
         <p role="status">Cargando clientes...</p>
       ) : (
-        <ResponsiveTable
-          columns={columns}
-          data={customersQuery.data || []}
-          rowKey={(c) => c.id}
-          emptyMessage="No hay clientes registrados con los filtros actuales."
-          ariaLabel="Listado regional de clientes"
-        />
+        <>
+          <ResponsiveTable
+            columns={columns}
+            data={customersQuery.data?.customers || []}
+            rowKey={(c) => c.id}
+            emptyMessage="No hay clientes registrados con los filtros actuales."
+            ariaLabel="Listado regional de clientes"
+          />
+          {customersQuery.data?.pagination && (
+            <Pagination
+              pagination={customersQuery.data.pagination}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize);
+                setPage(1);
+              }}
+              itemLabel="clientes"
+            />
+          )}
+        </>
       )}
 
       <Modal

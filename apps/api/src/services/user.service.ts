@@ -1,7 +1,14 @@
-import { ROLE_LABELS, ROLES, type Role, type UpdateUserInput } from '@arte-modelo/shared';
+import {
+  buildPaginationMeta,
+  ROLE_LABELS,
+  ROLES,
+  type Role,
+  type UpdateUserInput,
+} from '@arte-modelo/shared';
 import { prisma } from '../lib/prisma';
 import { generateRandomToken, sha256 } from '../lib/crypto';
 import { badRequest, notFound } from '../lib/errors';
+import { containsFilter, parsePaginationQuery } from '../lib/pagination';
 import { env } from '../config/env';
 import { sendInvitationEmail } from './email.service';
 import { toPublicUser } from './auth.service';
@@ -12,9 +19,12 @@ export interface ListUsersQuery {
   search?: string;
   role?: string;
   status?: 'active' | 'inactive' | 'pending' | 'all';
+  page?: unknown;
+  pageSize?: unknown;
 }
 
 export async function listUsers(query: ListUsersQuery) {
+  const { page, pageSize } = parsePaginationQuery(query);
   const where: Record<string, unknown> = {};
 
   if (query.role && (ROLES as readonly string[]).includes(query.role)) {
@@ -30,25 +40,32 @@ export async function listUsers(query: ListUsersQuery) {
     where.isVerified = false;
   }
 
+  const term = query.search?.trim();
+  if (term) {
+    where.OR = [
+      { fullName: containsFilter(term) },
+      { email: containsFilter(term) },
+      { phone: containsFilter(term) },
+    ];
+  }
+
+  const total = await prisma.user.count({ where });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
   const users = await prisma.user.findMany({
     where,
     orderBy: [{ createdAt: 'desc' }],
+    skip: (pagination.page - 1) * pagination.pageSize,
+    take: pagination.pageSize,
   });
 
-  const term = query.search?.trim().toLowerCase();
-  const filtered = term
-    ? users.filter(
-        (u) =>
-          u.fullName.toLowerCase().includes(term) ||
-          u.email.toLowerCase().includes(term) ||
-          (u.phone?.toLowerCase().includes(term) ?? false),
-      )
-    : users;
-
-  return filtered.map((u) => ({
-    ...toPublicUser(u),
-    hasPendingInvitation: Boolean(u.invitationTokenHash && !u.isVerified),
-  }));
+  return {
+    users: users.map((u) => ({
+      ...toPublicUser(u),
+      hasPendingInvitation: Boolean(u.invitationTokenHash && !u.isVerified),
+    })),
+    pagination,
+  };
 }
 
 async function ensureNotLastActiveAdmin(targetUserId: string) {

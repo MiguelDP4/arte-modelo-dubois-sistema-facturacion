@@ -35,6 +35,11 @@
   @include input-group;
 }
 
+.debounceHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 .badge {
   @include badge-base;
 }

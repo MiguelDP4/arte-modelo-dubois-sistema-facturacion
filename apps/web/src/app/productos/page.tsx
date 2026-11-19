@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  DEFAULT_PAGE_SIZE,
   formatCurrency,
   PRODUCT_CODE_LABELS,
+  SEARCH_DEBOUNCE_MS,
   STOCK_MOVEMENT_LABELS,
+  type PaginationMeta,
 } from '@arte-modelo/shared';
 import {
   Archive,
@@ -21,10 +24,12 @@ import {
   ResponsiveTable,
   type TableColumn,
 } from '@/components/ResponsiveTable/ResponsiveTable';
+import { Pagination } from '@/components/Pagination/Pagination';
 import { Modal } from '@/components/Modal/Modal';
 import { ConfirmModal } from '@/components/Modal/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiClient, getApiErrorMessage } from '@/lib/api-client';
 import { compressImageFile } from '@/lib/image-compress';
 import type {
@@ -50,15 +55,20 @@ function ProductosContent() {
   const canManage = hasPermission('products.manage');
 
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('ALL');
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Create / Edit modal state
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StaffProduct | null>(null);
   const [name, setName] = useState('');
-  const [formCategory, setFormCategory] = useState('');
   const [description, setDescription] = useState('');
   const [priceGTQ, setPriceGTQ] = useState('');
   const [priceHNL, setPriceHNL] = useState('');
@@ -90,17 +100,26 @@ function ProductosContent() {
     useState<StaffProduct | null>(null);
 
   const productsQuery = useQuery({
-    queryKey: ['products', search, category, lowStockOnly, includeArchived],
+    queryKey: [
+      'products',
+      debouncedSearch,
+      lowStockOnly,
+      includeArchived,
+      page,
+      pageSize,
+    ],
     queryFn: async () => {
-      const params: Record<string, string> = {};
-      if (search.trim()) params.search = search.trim();
-      if (category !== 'ALL') params.category = category;
+      const params: Record<string, string | number> = {
+        page,
+        pageSize,
+      };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (lowStockOnly) params.lowStockOnly = 'true';
       if (includeArchived) params.includeArchived = 'true';
       const res = await apiClient.get('/products', { params });
       return res.data as {
         products: StaffProduct[];
-        categories: string[];
+        pagination?: PaginationMeta;
       };
     },
   });
@@ -125,7 +144,6 @@ function ProductosContent() {
   const openCreateModal = () => {
     setEditingProduct(null);
     setName('');
-    setFormCategory('');
     setDescription('');
     setPriceGTQ('');
     setPriceHNL('');
@@ -142,7 +160,6 @@ function ProductosContent() {
   const openEditModal = (product: StaffProduct) => {
     setEditingProduct(product);
     setName(product.name);
-    setFormCategory(product.category || '');
     setDescription(product.description || '');
     setPriceGTQ(product.priceGTQ != null ? String(product.priceGTQ) : '');
     setPriceHNL(product.priceHNL != null ? String(product.priceHNL) : '');
@@ -167,7 +184,6 @@ function ProductosContent() {
     mutationFn: async () => {
       const payload = {
         name: name.trim(),
-        category: formCategory.trim() || null,
         description: description.trim() || null,
         codes: codes.map((c) => ({
           code: c.code.trim(),
@@ -317,7 +333,6 @@ function ProductosContent() {
         render: (p) => (
           <div>
             <strong>{p.name}</strong>
-            {p.category ? <div>{p.category}</div> : null}
             <div className={styles.codesList}>
               {p.codes.map((c) => (
                 <span
@@ -410,6 +425,9 @@ function ProductosContent() {
     [canManage],
   );
 
+  const isWaitingDebounce = search.trim() !== debouncedSearch.trim();
+  const pagination = productsQuery.data?.pagination;
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -435,22 +453,11 @@ function ProductosContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
-
-        <div className={styles.field}>
-          <label htmlFor="prod-category">Categoría</label>
-          <select
-            id="prod-category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="ALL">Todas</option>
-            {(productsQuery.data?.categories || []).map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          {isWaitingDebounce ? (
+            <span className={styles.debounceHint} role="status">
+              Esperando 1 segundo para buscar...
+            </span>
+          ) : null}
         </div>
 
         <div className={styles.checkboxRow}>
@@ -458,7 +465,10 @@ function ProductosContent() {
             <input
               type="checkbox"
               checked={lowStockOnly}
-              onChange={(e) => setLowStockOnly(e.target.checked)}
+              onChange={(e) => {
+                setLowStockOnly(e.target.checked);
+                setPage(1);
+              }}
             />
             Solo stock bajo
           </label>
@@ -467,7 +477,10 @@ function ProductosContent() {
             <input
               type="checkbox"
               checked={includeArchived}
-              onChange={(e) => setIncludeArchived(e.target.checked)}
+              onChange={(e) => {
+                setIncludeArchived(e.target.checked);
+                setPage(1);
+              }}
             />
             Mostrar archivados
           </label>
@@ -485,6 +498,19 @@ function ProductosContent() {
           ariaLabel="Listado de productos e inventario"
         />
       )}
+
+      {pagination ? (
+        <Pagination
+          pagination={pagination}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(1);
+          }}
+          itemLabel="productos"
+        />
+      ) : null}
 
       {/* Modal Crear / Editar Producto */}
       <Modal
@@ -533,17 +559,6 @@ function ProductosContent() {
 
           <div className={styles.twoCol}>
             <div className={styles.field}>
-              <label htmlFor="prod-cat-input">Categoría</label>
-              <input
-                id="prod-cat-input"
-                type="text"
-                placeholder="Marcos, Molduras, Espejos..."
-                value={formCategory}
-                onChange={(e) => setFormCategory(e.target.value)}
-              />
-            </div>
-
-            <div className={styles.field}>
               <label htmlFor="prod-threshold">Alerta stock bajo (uds.)</label>
               <input
                 id="prod-threshold"
@@ -553,20 +568,20 @@ function ProductosContent() {
                 onChange={(e) => setLowStockThreshold(e.target.value)}
               />
             </div>
-          </div>
 
-          {!editingProduct ? (
-            <div className={styles.field}>
-              <label htmlFor="prod-init-stock">Inventario inicial</label>
-              <input
-                id="prod-init-stock"
-                type="number"
-                min={0}
-                value={initialStock}
-                onChange={(e) => setInitialStock(e.target.value)}
-              />
-            </div>
-          ) : null}
+            {!editingProduct ? (
+              <div className={styles.field}>
+                <label htmlFor="prod-init-stock">Inventario inicial</label>
+                <input
+                  id="prod-init-stock"
+                  type="number"
+                  min={0}
+                  value={initialStock}
+                  onChange={(e) => setInitialStock(e.target.value)}
+                />
+              </div>
+            ) : null}
+          </div>
 
           <div className={styles.field}>
             <label htmlFor="prod-desc">Descripción</label>

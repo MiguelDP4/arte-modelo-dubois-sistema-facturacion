@@ -19,11 +19,33 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 2 & Fase 3 E2E', () => {
     expect(hasOverflow).toBe(false);
     await expect(page.getByText(/Existencia:/i)).toHaveCount(0);
 
-    // Buscar por código secundario PROV-9910 del seed
+    // Paginación a nivel de API (14+ productos en test.db -> 2 páginas de 10, o 1 página de 20)
+    const summaryLocator = page.getByText(/Mostrando 1–10 de \d+ productos/);
+    await expect(summaryLocator).toBeVisible();
+    const summaryText = (await summaryLocator.textContent()) || '';
+    const totalMatch = summaryText.match(/Mostrando 1–10 de (\d+) productos/);
+    const total = Number(totalMatch?.[1] || 0);
+    expect(total).toBeGreaterThanOrEqual(14);
+    expect(total).toBeLessThanOrEqual(20);
+
+    await expect(page.getByText('Página 1 de 2')).toBeVisible();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByText(`Mostrando 11–${total} de ${total} productos`)).toBeVisible();
+    await expect(page.getByText('Página 2 de 2')).toBeVisible();
+
+    await page.getByLabel('Registros por página').selectOption('20');
+    await expect(page.getByText(`Mostrando 1–${total} de ${total} productos`)).toBeVisible();
+    await expect(page.getByText('Página 1 de 1')).toBeVisible();
+
+    // Buscar por código secundario PROV-9910 del seed con debounce de 1s
     await page.getByLabel('Buscar producto o código').fill('PROV-9910');
     await expect(
-      page.getByRole('heading', { name: /Marco Clásico Azul Marino/i }),
+      page.getByText('Esperando 1 segundo para buscar...'),
     ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Marco Clásico Azul Marino/i }),
+    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Mostrando 1–1 de 1 productos')).toBeVisible();
 
     // Abrir galería modal
     await page
@@ -64,14 +86,14 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 2 & Fase 3 E2E', () => {
     );
     expect(overflowProd).toBe(false);
 
-    // Crear producto con 2 códigos
+    // Crear producto con 2 códigos (sin categoría)
     const uniqueSuffix = String(Date.now()).slice(-5);
     await page.getByRole('button', { name: /Nuevo producto/i }).click();
     const prodDialog = page.getByRole('dialog');
+    await expect(prodDialog.getByLabel('Categoría')).toHaveCount(0);
     await prodDialog
       .getByLabel('Nombre del producto')
       .fill(`Marco E2E ${uniqueSuffix}`);
-    await prodDialog.getByLabel('Categoría').fill('Marcos');
     await prodDialog.getByLabel('Inventario inicial').fill('5');
     await prodDialog.getByLabel('Precio GTQ (Q)').fill('250');
     await prodDialog
@@ -85,11 +107,20 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 2 & Fase 3 E2E', () => {
 
     await expect(page.getByText(/Producto creado/i).first()).toBeVisible();
 
-    // Filtrar por el código secundario recién creado y registrar movimiento Kardex
+    // Filtrar por el código secundario recién creado esperando el debounce de 1s
     await page
       .getByLabel('Buscar por nombre o cualquier código')
       .fill(`PROV-E2E-${uniqueSuffix}`);
-    await page.getByRole('button', { name: /Kardex/i }).first().click();
+    await expect(page.getByText('Mostrando 1–1 de 1 productos')).toBeVisible({
+      timeout: 5000,
+    });
+    const prodContainer = isMobile
+      ? page.getByTestId('responsive-table-cards')
+      : page.getByRole('table');
+    await expect(
+      prodContainer.getByText(`AMD-E2E-${uniqueSuffix}`),
+    ).toBeVisible();
+    await prodContainer.getByRole('button', { name: /Kardex/i }).first().click();
 
     const kardexDialog = page.getByRole('dialog');
     await expect(kardexDialog).toBeVisible();
@@ -152,9 +183,18 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 2 & Fase 3 E2E', () => {
 
     await expect(page.getByText(/Cliente creado/i).first()).toBeVisible();
 
-    // Buscar el cliente recién creado y entrar a su ficha
+    // Buscar el cliente recién creado esperando el debounce de 1s y entrar a su ficha
     await page.getByLabel('Buscar cliente').fill(`Empresa E2E HN ${suffix}`);
-    await page.getByRole('link', { name: /Ver detalle/i }).first().click();
+    await expect(page.getByText('Mostrando 1–1 de 1 clientes')).toBeVisible({
+      timeout: 5000,
+    });
+    const custContainer = isMobile
+      ? page.getByTestId('responsive-table-cards')
+      : page.getByRole('table');
+    await expect(
+      custContainer.getByText(`Empresa E2E HN ${suffix}`),
+    ).toBeVisible();
+    await custContainer.getByRole('link', { name: /Ver detalle/i }).first().click();
 
     await expect(
       page.getByRole('heading', { name: `Empresa E2E HN ${suffix}` }),

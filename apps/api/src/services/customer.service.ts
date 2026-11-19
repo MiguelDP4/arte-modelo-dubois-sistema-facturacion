@@ -1,4 +1,5 @@
 import {
+  buildPaginationMeta,
   COUNTRIES,
   COUNTRY_CURRENCY,
   COUNTRY_LABELS,
@@ -10,6 +11,7 @@ import {
 } from '@arte-modelo/shared';
 import { prisma } from '../lib/prisma';
 import { badRequest, conflict, notFound } from '../lib/errors';
+import { containsFilter, parsePaginationQuery } from '../lib/pagination';
 
 function toCustomerDto(customer: {
   id: string;
@@ -68,8 +70,12 @@ export async function listCustomers(query: {
   search?: string;
   country?: string;
   includeInactive?: boolean;
+  page?: unknown;
+  pageSize?: unknown;
 }) {
+  const { page, pageSize } = parsePaginationQuery(query);
   const where: Record<string, unknown> = {};
+
   if (!query.includeInactive) {
     where.isActive = true;
     where.deletedAt = null;
@@ -78,27 +84,34 @@ export async function listCustomers(query: {
     where.country = query.country;
   }
 
+  const term = query.search?.trim();
+  if (term) {
+    where.OR = [
+      { companyName: containsFilter(term) },
+      { managerName: containsFilter(term) },
+      { email: containsFilter(term) },
+      { taxId: containsFilter(term) },
+      { phone: containsFilter(term) },
+    ];
+  }
+
+  const total = await prisma.customer.count({ where });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
   const customers = await prisma.customer.findMany({
     where,
     include: {
       _count: { select: { users: true } },
     },
     orderBy: [{ companyName: 'asc' }],
+    skip: (pagination.page - 1) * pagination.pageSize,
+    take: pagination.pageSize,
   });
 
-  const term = query.search?.trim().toLowerCase();
-  const filtered = term
-    ? customers.filter(
-        (c) =>
-          c.companyName.toLowerCase().includes(term) ||
-          c.managerName.toLowerCase().includes(term) ||
-          c.email.toLowerCase().includes(term) ||
-          c.taxId.toLowerCase().includes(term) ||
-          c.phone.toLowerCase().includes(term),
-      )
-    : customers;
-
-  return filtered.map(toCustomerDto);
+  return {
+    customers: customers.map(toCustomerDto),
+    pagination,
+  };
 }
 
 export async function getCustomerById(id: string) {

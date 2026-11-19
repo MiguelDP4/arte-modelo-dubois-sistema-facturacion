@@ -40,6 +40,7 @@
 | `F2-01` | Modelos `Product`, `ProductCode`, `ProductImage` y `StockMovement` + API CRUD con búsqueda unificada por código | `feature/F2-01-products-api` | `En Revisión` | Múltiples códigos por producto, soft-delete, kardex automático e integración DB pasando. |
 | `F2-02` | Endpoint `GET /api/catalog` público (sin precios ni stock) vs `GET /api/products` autenticado con permiso de precios/stock | `feature/F2-02-catalog-privacy` | `En Revisión` | Garantía por tests de que usuarios públicos y `CUSTOMER` no reciben precios ni stock en catálogo. |
 | `F2-03` | UI de `/catalogo` y `/productos` Mobile-First (cards en móvil, compresión e subida Cloudinary, galería modal, kardex de stock) | `feature/F2-03-products-ui` | `En Revisión` | Alta/edición/borrado de productos, múltiples códigos y vistas probadas con Vitest + Playwright. |
+| `F2-04` | Eliminar categorías de productos, implementar paginación real a nivel de API (`10`/`20`/`50`/`100`) y debounce obligatorio de 1 segundo en todos los buscadores | `feature/F2-F3-catalog-customers` | `En Revisión` | Sin campo `category`, endpoints `/catalog`, `/products`, `/customers` y `/users` paginados con selector de tamaño, debounce `1000 ms` y seed ampliado (`14` productos, `12` clientes) verificados con Vitest + Playwright. |
 
 ### Fase 3 — Cartera Regional de Clientes
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |

@@ -101,6 +101,38 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export const PAYMENT_METHODS = ['CASH', 'TRANSFER', 'CHECK'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const DEFAULT_PAGE_SIZE = 10;
+export const MAX_PAGE_SIZE = 100;
+export const SEARCH_DEBOUNCE_MS = 1000;
+
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+export function buildPaginationMeta(
+  total: number,
+  page: number,
+  pageSize: number,
+): PaginationMeta {
+  const safePageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(pageSize || DEFAULT_PAGE_SIZE)));
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const safePage = Math.min(Math.max(1, Math.floor(page || 1)), totalPages);
+  return {
+    page: safePage,
+    pageSize: safePageSize,
+    total,
+    totalPages,
+    hasPrev: safePage > 1,
+    hasNext: safePage < totalPages,
+  };
+}
+
 export function formatCurrency(amount: number, currency: Currency): string {
   const safeAmount = Number.isFinite(amount) ? amount : 0;
   const formatted = safeAmount.toLocaleString('es-GT', {

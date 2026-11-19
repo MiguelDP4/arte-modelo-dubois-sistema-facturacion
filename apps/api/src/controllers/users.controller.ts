@@ -3,7 +3,7 @@ import * as userService from '../services/user.service';
 
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
-    const users = await userService.listUsers({
+    const result = await userService.listUsers({
       search: typeof req.query.search === 'string' ? req.query.search : undefined,
       role: typeof req.query.role === 'string' ? req.query.role : undefined,
       status:
@@ -13,8 +13,10 @@ export async function list(req: Request, res: Response, next: NextFunction) {
         req.query.status === 'all'
           ? req.query.status
           : undefined,
+      page: req.query.page,
+      pageSize: req.query.pageSize,
     });
-    res.status(200).json({ success: true, users });
+    res.status(200).json({ success: true, ...result });
   } catch (err) {
     next(err);
   }

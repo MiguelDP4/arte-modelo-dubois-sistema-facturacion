@@ -72,6 +72,10 @@ Sistema Facturación Arte Modelo 2.0/
 ## 4. Reglas de Negocio (Arte Modelo Dubois 2.0)
 
 ### 4.1 Catálogo Multimoneda y Múltiples Códigos
+- **Sin categorías de productos:** Los productos del catálogo no manejan campo de categoría ni filtros por categoría; la organización y búsqueda se basan en nombre, descripción y sus códigos asociados.
+- **Paginación a nivel de API y debounce obligatorio (Regla Permanente):**
+  - Todo endpoint de listado (`/api/catalog`, `/api/products`, `/api/customers`, `/api/users` y futuros módulos de pedidos/pagos/consignación) debe implementar paginación real en base de datos (`page`, `pageSize` configurable por el usuario entre `10`, `20`, `50` y `100`, con objeto `pagination`).
+  - Todo input de búsqueda en el frontend debe aplicar un **debounce estricto de `1000 ms` (1 segundo)** (`useDebouncedValue`) antes de disparar solicitudes al backend, evitando sobrecargar el servidor con llamadas por cada pulsación de tecla.
 - **Monedas soportadas por país del cliente:**
   - Guatemala: `GTQ` (`Q`)
   - Honduras: `HNL` (`L`)

@@ -1,10 +1,12 @@
-import type {
-  CreateProductInput,
-  CreateStockMovementInput,
-  UpdateProductInput,
+import {
+  buildPaginationMeta,
+  type CreateProductInput,
+  type CreateStockMovementInput,
+  type UpdateProductInput,
 } from '@arte-modelo/shared';
 import { prisma } from '../lib/prisma';
 import { badRequest, conflict, notFound } from '../lib/errors';
+import { containsFilter, parsePaginationQuery } from '../lib/pagination';
 
 const productInclude = {
   codes: {
@@ -30,7 +32,6 @@ export function toPublicCatalogProduct(product: ProductWithRelations) {
     id: product.id,
     name: product.name,
     description: product.description,
-    category: product.category,
     codes: product.codes.map((c) => ({
       id: c.id,
       code: c.code,
@@ -99,59 +100,48 @@ function normalizeCodes(
   }));
 }
 
-function matchesProductSearch(
-  product: ProductWithRelations,
-  searchTerm: string,
-): boolean {
-  const term = searchTerm.trim().toLowerCase();
-  if (!term) return true;
+function buildProductSearchWhere(
+  search: string | undefined,
+  includeArchived: boolean,
+) {
+  const where: Record<string, unknown> = includeArchived
+    ? {}
+    : { isActive: true, deletedAt: null };
 
-  if (product.name.toLowerCase().includes(term)) return true;
-  if (product.description?.toLowerCase().includes(term)) return true;
-  if (product.category?.toLowerCase().includes(term)) return true;
-
-  return product.codes.some((c) => c.code.toLowerCase().includes(term));
-}
-
-function extractCategories(products: ProductWithRelations[]): string[] {
-  const set = new Set<string>();
-  for (const p of products) {
-    if (p.category?.trim()) {
-      set.add(p.category.trim());
-    }
+  const term = search?.trim();
+  if (term) {
+    where.OR = [
+      { name: containsFilter(term) },
+      { description: containsFilter(term) },
+      { codes: { some: { code: { contains: term.toUpperCase() } } } },
+    ];
   }
-  return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+
+  return where;
 }
 
 export async function listPublicCatalog(query: {
   search?: string;
-  category?: string;
+  page?: unknown;
+  pageSize?: unknown;
 }) {
-  const activeProducts = await prisma.product.findMany({
-    where: { isActive: true, deletedAt: null },
+  const { page, pageSize } = parsePaginationQuery(query);
+  const where = buildProductSearchWhere(query.search, false);
+
+  const total = await prisma.product.count({ where });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
+  const items = await prisma.product.findMany({
+    where,
     include: productInclude,
     orderBy: [{ name: 'asc' }],
-  });
-
-  const categories = extractCategories(activeProducts);
-
-  const filtered = activeProducts.filter((product) => {
-    if (
-      query.category &&
-      query.category !== 'ALL' &&
-      product.category?.trim().toLowerCase() !== query.category.trim().toLowerCase()
-    ) {
-      return false;
-    }
-    if (query.search && !matchesProductSearch(product, query.search)) {
-      return false;
-    }
-    return true;
+    skip: (pagination.page - 1) * pagination.pageSize,
+    take: pagination.pageSize,
   });
 
   return {
-    products: filtered.map(toPublicCatalogProduct),
-    categories,
+    products: items.map(toPublicCatalogProduct),
+    pagination,
   };
 }
 
@@ -169,44 +159,62 @@ export async function getPublicCatalogProduct(id: string) {
 export async function listProducts(
   query: {
     search?: string;
-    category?: string;
     includeArchived?: boolean;
     lowStockOnly?: boolean;
+    page?: unknown;
+    pageSize?: unknown;
   },
   includePrices: boolean,
 ) {
-  const products = await prisma.product.findMany({
-    where: query.includeArchived ? {} : { isActive: true, deletedAt: null },
+  const { page, pageSize } = parsePaginationQuery(query);
+  const where = buildProductSearchWhere(
+    query.search,
+    Boolean(query.includeArchived),
+  );
+
+  if (includePrices && query.lowStockOnly) {
+    const candidates = await prisma.product.findMany({
+      where,
+      select: { id: true, stock: true, lowStockThreshold: true },
+      orderBy: [{ name: 'asc' }],
+    });
+    const lowStockIds = candidates
+      .filter((p) => p.stock <= p.lowStockThreshold)
+      .map((p) => p.id);
+
+    const pagination = buildPaginationMeta(lowStockIds.length, page, pageSize);
+    const start = (pagination.page - 1) * pagination.pageSize;
+    const pageIds = lowStockIds.slice(start, start + pagination.pageSize);
+
+    const items =
+      pageIds.length > 0
+        ? await prisma.product.findMany({
+            where: { id: { in: pageIds } },
+            include: productInclude,
+            orderBy: [{ name: 'asc' }],
+          })
+        : [];
+
+    return {
+      products: items.map((p) => toStaffProduct(p, includePrices)),
+      pagination,
+    };
+  }
+
+  const total = await prisma.product.count({ where });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
+  const items = await prisma.product.findMany({
+    where,
     include: productInclude,
     orderBy: [{ name: 'asc' }],
-  });
-
-  const categories = extractCategories(products);
-
-  const filtered = products.filter((product) => {
-    if (
-      query.category &&
-      query.category !== 'ALL' &&
-      product.category?.trim().toLowerCase() !== query.category.trim().toLowerCase()
-    ) {
-      return false;
-    }
-    if (query.search && !matchesProductSearch(product, query.search)) {
-      return false;
-    }
-    if (
-      includePrices &&
-      query.lowStockOnly &&
-      product.stock > product.lowStockThreshold
-    ) {
-      return false;
-    }
-    return true;
+    skip: (pagination.page - 1) * pagination.pageSize,
+    take: pagination.pageSize,
   });
 
   return {
-    products: filtered.map((p) => toStaffProduct(p, includePrices)),
-    categories,
+    products: items.map((p) => toStaffProduct(p, includePrices)),
+    pagination,
   };
 }
 
@@ -241,7 +249,6 @@ export async function createProduct(
       data: {
         name: input.name,
         description: input.description ?? null,
-        category: input.category ?? null,
         priceGTQ: input.priceGTQ ?? null,
         priceHNL: input.priceHNL ?? null,
         priceNIO: input.priceNIO ?? null,
@@ -346,7 +353,6 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
         ...(input.description !== undefined
           ? { description: input.description }
           : {}),
-        ...(input.category !== undefined ? { category: input.category } : {}),
         ...(input.priceGTQ !== undefined ? { priceGTQ: input.priceGTQ } : {}),
         ...(input.priceHNL !== undefined ? { priceHNL: input.priceHNL } : {}),
         ...(input.priceNIO !== undefined ? { priceNIO: input.priceNIO } : {}),

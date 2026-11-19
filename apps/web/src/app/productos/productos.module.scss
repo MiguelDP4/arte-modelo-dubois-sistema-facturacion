@@ -22,20 +22,20 @@
 
 .filtersCard {
   @include card-surface;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-  @media (min-width: 768px) {
-    grid-template-columns: 2fr 1fr;
-  }
+.debounceHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
 }
 
 .checkboxRow {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  grid-column: 1 / -1;
 }
 
 .checkLabel {

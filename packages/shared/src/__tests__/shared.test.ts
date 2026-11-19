@@ -3,9 +3,13 @@ import {
   COUNTRY_CURRENCY,
   COUNTRY_LABELS,
   COUNTRY_TAX_LABEL,
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
   PRODUCT_CODE_LABELS,
+  SEARCH_DEBOUNCE_MS,
   STOCK_MOVEMENT_LABELS,
   STOCK_MOVEMENT_TYPES,
+  buildPaginationMeta,
   formatCurrency,
   isPermissionCode,
   LOCKED_ADMIN_PERMISSIONS,
@@ -125,6 +129,39 @@ describe('shared Zod validators', () => {
     ).toBe(true);
   });
 
+  it('validates pagination helpers and search debounce constants', () => {
+    expect(PAGE_SIZE_OPTIONS).toEqual([10, 20, 50, 100]);
+    expect(DEFAULT_PAGE_SIZE).toBe(10);
+    expect(SEARCH_DEBOUNCE_MS).toBe(1000);
+
+    expect(buildPaginationMeta(0, 1, 10)).toEqual({
+      page: 1,
+      pageSize: 10,
+      total: 0,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+
+    expect(buildPaginationMeta(25, 1, 10)).toEqual({
+      page: 1,
+      pageSize: 10,
+      total: 25,
+      totalPages: 3,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    expect(buildPaginationMeta(25, 3, 10)).toEqual({
+      page: 3,
+      pageSize: 10,
+      total: 25,
+      totalPages: 3,
+      hasPrev: true,
+      hasNext: false,
+    });
+  });
+
   it('validates product, stock movement, upload and customer schemas', () => {
     expect(COUNTRY_LABELS.GT).toBe('Guatemala');
     expect(PRODUCT_CODE_LABELS).toContain('Interno');
@@ -134,7 +171,6 @@ describe('shared Zod validators', () => {
     expect(
       createProductSchema.safeParse({
         name: 'Marco Dorado Clásico',
-        category: 'Marcos',
         codes: [{ code: 'AMD-001', label: 'Interno', isPrimary: true }],
         priceGTQ: 150,
         priceUSD: 20,

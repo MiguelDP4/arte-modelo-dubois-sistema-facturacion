@@ -31,8 +31,8 @@ function DashboardContent() {
           <div>
             <h2>Catálogo de Productos</h2>
             <p>
-              Consulta nuestro catálogo completo por categoría o cualquier código
-              de referencia con galería visual.
+              Consulta nuestro catálogo completo por nombre o cualquiera de sus
+              códigos de referencia con galería visual.
             </p>
           </div>
           <Link href="/catalogo" className={styles.cardAction}>

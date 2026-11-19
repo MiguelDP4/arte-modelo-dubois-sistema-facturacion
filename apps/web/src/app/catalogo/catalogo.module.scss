@@ -26,17 +26,18 @@
 
 .filtersCard {
   @include card-surface;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-
-  @media (min-width: 768px) {
-    grid-template-columns: 2fr 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .field {
   @include input-group;
+}
+
+.debounceHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
 }
 
 .noticeCard {

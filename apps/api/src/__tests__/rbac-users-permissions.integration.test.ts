@@ -110,10 +110,26 @@ describe('RBAC, Users and Permissions API integration', () => {
     expect(grantRes.status).toBe(200);
 
     const empList = await request(app)
-      .get('/api/users')
+      .get('/api/users?page=1&pageSize=2')
       .set('Authorization', `Bearer ${employee.token}`);
     expect(empList.status).toBe(200);
-    expect(empList.body.users).toHaveLength(3);
+    expect(empList.body.users).toHaveLength(2);
+    expect(empList.body.pagination).toEqual({
+      page: 1,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    const empPage2 = await request(app)
+      .get('/api/users?page=2&pageSize=2')
+      .set('Authorization', `Bearer ${employee.token}`);
+    expect(empPage2.status).toBe(200);
+    expect(empPage2.body.users).toHaveLength(1);
+    expect(empPage2.body.pagination.hasPrev).toBe(true);
+    expect(empPage2.body.pagination.hasNext).toBe(false);
 
     // Admin revokes users.read from EMPLOYEE -> blocked again
     await request(app)

@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { formatCurrency } from '@arte-modelo/shared';
+import {
+  DEFAULT_PAGE_SIZE,
+  formatCurrency,
+  SEARCH_DEBOUNCE_MS,
+  type PaginationMeta,
+} from '@arte-modelo/shared';
 import { AppShell } from '@/components/AppShell/AppShell';
 import { Topbar } from '@/components/Topbar/Topbar';
 import { Modal } from '@/components/Modal/Modal';
+import { Pagination } from '@/components/Pagination/Pagination';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiClient } from '@/lib/api-client';
 import type { CatalogProduct, StaffProduct } from '@/types/catalog';
 import styles from './catalogo.module.scss';
@@ -20,22 +27,31 @@ function isStaffItem(item: CatalogItem): item is StaffProduct {
 
 function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('ALL');
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
   const [galleryProduct, setGalleryProduct] = useState<CatalogItem | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   const catalogQuery = useQuery({
-    queryKey: ['public-catalog', showStaffPrices, search, category],
+    queryKey: ['public-catalog', showStaffPrices, debouncedSearch, page, pageSize],
     queryFn: async () => {
-      const params: Record<string, string> = {};
-      if (search.trim()) params.search = search.trim();
-      if (category !== 'ALL') params.category = category;
+      const params: Record<string, string | number> = {
+        page,
+        pageSize,
+      };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
 
       const endpoint = showStaffPrices ? '/products' : '/catalog';
       const res = await apiClient.get(endpoint, { params });
       return res.data as {
         products: CatalogItem[];
-        categories: string[];
+        pagination?: PaginationMeta;
       };
     },
   });
@@ -47,6 +63,9 @@ function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
   };
 
   const activeImage = galleryProduct?.images[galleryIndex];
+  const products = catalogQuery.data?.products || [];
+  const pagination = catalogQuery.data?.pagination;
+  const isWaitingDebounce = search.trim() !== debouncedSearch.trim();
 
   return (
     <div className={styles.page}>
@@ -54,7 +73,7 @@ function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
         <div>
           <h1>Catálogo Arte Modelo Dubois</h1>
           <p className={styles.subtitle}>
-            Explora productos disponibles por categoría o cualquiera de sus códigos
+            Explora productos disponibles por nombre o cualquiera de sus códigos
             de referencia.
           </p>
         </div>
@@ -86,40 +105,29 @@ function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
           <input
             id="catalog-search"
             type="search"
-            placeholder="Nombre, código interno, proveedor o tienda..."
+            placeholder="Nombre, descripción, código interno, proveedor o tienda..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-
-        <div className={styles.field}>
-          <label htmlFor="catalog-category">Categoría</label>
-          <select
-            id="catalog-category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="ALL">Todas las categorías</option>
-            {(catalogQuery.data?.categories || []).map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isWaitingDebounce ? (
+          <span className={styles.debounceHint} role="status">
+            Esperando 1 segundo para buscar...
+          </span>
+        ) : null}
       </section>
 
       {catalogQuery.isLoading ? (
         <div className={styles.emptyCard} role="status">
           Cargando catálogo...
         </div>
-      ) : (catalogQuery.data?.products || []).length === 0 ? (
+      ) : products.length === 0 ? (
         <div className={styles.emptyCard}>
           No se encontraron productos con los filtros actuales.
         </div>
       ) : (
         <section className={styles.grid} aria-label="Productos del catálogo">
-          {(catalogQuery.data?.products || []).map((product) => (
+          {products.map((product) => (
             <article key={product.id} className={styles.productCard}>
               {product.images.length > 0 ? (
                 <button
@@ -143,10 +151,6 @@ function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
               )}
 
               <div className={styles.cardBody}>
-                {product.category ? (
-                  <span className={styles.categoryLabel}>{product.category}</span>
-                ) : null}
-
                 <h2 className={styles.productTitle}>{product.name}</h2>
 
                 {product.description ? (
@@ -199,6 +203,19 @@ function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
           ))}
         </section>
       )}
+
+      {pagination ? (
+        <Pagination
+          pagination={pagination}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(1);
+          }}
+          itemLabel="productos"
+        />
+      ) : null}
 
       <Modal
         isOpen={Boolean(galleryProduct && activeImage)}

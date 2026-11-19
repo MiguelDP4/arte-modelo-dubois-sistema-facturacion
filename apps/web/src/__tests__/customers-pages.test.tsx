@@ -103,7 +103,17 @@ describe('Clientes & ClienteDetalle pages', () => {
     });
 
     mockedApi.get.mockResolvedValue({
-      data: { customers: [sampleCustomer] },
+      data: {
+        customers: [sampleCustomer],
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 1,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
+      },
     });
 
     mockedApi.delete.mockResolvedValue({

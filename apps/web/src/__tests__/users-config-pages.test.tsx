@@ -115,6 +115,14 @@ describe('Usuarios & Configuracion pages', () => {
             createdAt: '2026-01-02',
           },
         ],
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 2,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
       },
     });
 

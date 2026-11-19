@@ -76,7 +76,6 @@ model Product {
   id                String          @id @default(cuid())
   name              String
   description       String?
-  category          String?
   priceGTQ          Float?
   priceHNL          Float?
   priceNIO          Float?
@@ -92,7 +91,6 @@ model Product {
   updatedAt         DateTime        @updatedAt
 
   @@index([isActive, deletedAt])
-  @@index([category])
 }
 
 model ProductCode {

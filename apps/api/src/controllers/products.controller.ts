@@ -9,8 +9,8 @@ export async function listPublicCatalog(
   try {
     const result = await productService.listPublicCatalog({
       search: typeof req.query.search === 'string' ? req.query.search : undefined,
-      category:
-        typeof req.query.category === 'string' ? req.query.category : undefined,
+      page: req.query.page,
+      pageSize: req.query.pageSize,
     });
     res.status(200).json({ success: true, ...result });
   } catch (err) {
@@ -41,12 +41,10 @@ export async function list(req: Request, res: Response, next: NextFunction) {
       {
         search:
           typeof req.query.search === 'string' ? req.query.search : undefined,
-        category:
-          typeof req.query.category === 'string'
-            ? req.query.category
-            : undefined,
         includeArchived: req.query.includeArchived === 'true',
         lowStockOnly: req.query.lowStockOnly === 'true',
+        page: req.query.page,
+        pageSize: req.query.pageSize,
       },
       includePrices,
     );

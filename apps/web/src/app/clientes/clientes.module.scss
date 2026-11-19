@@ -35,6 +35,11 @@
   @include input-group;
 }
 
+.debounceHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 .checkboxRow {
   grid-column: 1 / -1;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ToastProvider } from '@/contexts/ToastContext';
@@ -70,7 +70,6 @@ const sampleStaffProducts = [
     id: 'prod-1',
     name: 'Marco Clásico Azul',
     description: 'Acabado fino',
-    category: 'Marcos',
     isActive: true,
     deletedAt: null,
     createdAt: '2026-01-01',
@@ -113,13 +112,11 @@ describe('Catalogo & Productos pages + image compression', () => {
     mockedApi.post.mockRejectedValue(new Error('No session'));
     mockedApi.get.mockResolvedValue({
       data: {
-        categories: ['Marcos'],
         products: [
           {
             id: 'prod-1',
             name: 'Marco Público',
             description: 'Sin precio visible',
-            category: 'Marcos',
             codes: [{ code: 'AMD-001', label: 'Interno', isPrimary: true }],
             images: [
               { url: '/seed/marco-clasico.svg', altText: 'Foto 1' },
@@ -128,6 +125,14 @@ describe('Catalogo & Productos pages + image compression', () => {
             createdAt: '2026-01-01',
           },
         ],
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 1,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
       },
     });
 
@@ -137,16 +142,19 @@ describe('Catalogo & Productos pages + image compression', () => {
       expect(screen.getByText('Marco Público')).toBeInTheDocument();
     });
 
-    expect(mockedApi.get).toHaveBeenCalledWith('/catalog', { params: {} });
+    expect(mockedApi.get).toHaveBeenCalledWith('/catalog', {
+      params: { page: 1, pageSize: 10 },
+    });
     expect(screen.queryByText(/Existencia:/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1–1 de 1 productos')).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Ver galería de Marco Público' }),
     );
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('1 / 2')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    const dialog = within(screen.getByRole('dialog'));
+    expect(dialog.getByText('1 / 2')).toBeInTheDocument();
+    fireEvent.click(dialog.getByRole('button', { name: 'Siguiente' }));
+    expect(dialog.getByText('2 / 2')).toBeInTheDocument();
   });
 
   it('renders /catalogo for staff with prices and stock visible', async () => {
@@ -154,8 +162,15 @@ describe('Catalogo & Productos pages + image compression', () => {
     mockedApi.post.mockResolvedValue(staffSession);
     mockedApi.get.mockResolvedValue({
       data: {
-        categories: ['Marcos'],
         products: sampleStaffProducts,
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 1,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
       },
     });
 
@@ -210,8 +225,15 @@ describe('Catalogo & Productos pages + image compression', () => {
       }
       return {
         data: {
-          categories: ['Marcos'],
           products: sampleStaffProducts,
+          pagination: {
+            page: 1,
+            pageSize: 10,
+            total: 1,
+            totalPages: 1,
+            hasPrev: false,
+            hasNext: false,
+          },
         },
       };
     });
@@ -226,8 +248,9 @@ describe('Catalogo & Productos pages + image compression', () => {
       expect(screen.getAllByText('Marco Clásico Azul').length).toBeGreaterThanOrEqual(1);
     });
 
-    // Open New Product modal and submit with 2 codes
+    // Open New Product modal (without category) and submit with 2 codes
     fireEvent.click(screen.getByRole('button', { name: /Nuevo producto/i }));
+    expect(screen.queryByLabelText('Categoría')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Nombre del producto'), {
       target: { value: 'Moldura Nueva' },
     });
