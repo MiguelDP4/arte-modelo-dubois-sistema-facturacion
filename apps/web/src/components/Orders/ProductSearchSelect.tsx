@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   formatCurrency,
   SEARCH_DEBOUNCE_MS,
   type Currency,
+  type PaginationMeta,
 } from '@arte-modelo/shared';
 import { ChevronDown, Package, Search } from 'lucide-react';
+import { SearchingIndicator } from '@/components/SearchingIndicator/SearchingIndicator';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiClient } from '@/lib/api-client';
 import type { CatalogProduct, StaffProduct } from '@/types/catalog';
-import styles from './ProductSearchSelect.module.scss';
+import styles from './SearchSelect.module.scss';
 
 export interface SelectedProductOption {
   id: string;
@@ -107,18 +109,19 @@ export function ProductSearchSelect({
     };
   }, [isOpen]);
 
-  const productsQuery = useQuery({
+  const productsQuery = useInfiniteQuery({
     queryKey: [
       'order-product-search',
       isCustomerMode ? 'catalog' : 'products',
       debouncedSearch,
       excludedKey,
     ],
+    initialPageParam: 1,
     enabled: isOpen,
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const endpoint = isCustomerMode ? '/catalog' : '/products';
       const params: Record<string, string | number> = {
-        page: 1,
+        page: Number(pageParam) || 1,
         pageSize: 10,
       };
       if (debouncedSearch.trim()) {
@@ -129,16 +132,48 @@ export function ProductSearchSelect({
       }
 
       const res = await apiClient.get(endpoint, { params });
-      return (res.data.products || []) as Array<CatalogProduct | StaffProduct>;
+      return {
+        products: (res.data.products || []) as Array<
+          CatalogProduct | StaffProduct
+        >,
+        pagination: res.data.pagination as PaginationMeta | undefined,
+      };
     },
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination?.hasNext ? lastPage.pagination.page + 1 : undefined,
   });
 
-  const options = useMemo(
-    () => (productsQuery.data || []).filter((p) => !excludedSet.has(p.id)),
-    [productsQuery.data, excludedSet],
-  );
+  const options = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Array<CatalogProduct | StaffProduct> = [];
+    for (const pageData of productsQuery.data?.pages ?? []) {
+      for (const item of pageData.products) {
+        if (!excludedSet.has(item.id) && !seen.has(item.id)) {
+          seen.add(item.id);
+          list.push(item);
+        }
+      }
+    }
+    return list;
+  }, [productsQuery.data, excludedSet]);
 
   const isWaitingDebounce = search.trim() !== debouncedSearch.trim();
+  const isInitialLoading =
+    isWaitingDebounce ||
+    productsQuery.isPending ||
+    (productsQuery.isFetching && !productsQuery.isFetchingNextPage);
+
+  const handleListScroll = (e: React.UIEvent<HTMLUListElement>) => {
+    const el = e.currentTarget;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (
+      distanceToBottom <= 40 &&
+      productsQuery.hasNextPage &&
+      !productsQuery.isFetchingNextPage
+    ) {
+      void productsQuery.fetchNextPage();
+    }
+  };
 
   const handleChoose = (item: CatalogProduct | StaffProduct) => {
     const primaryCode = item.codes[0]?.code ?? '';
@@ -224,13 +259,9 @@ export function ProductSearchSelect({
             />
           </div>
 
-          {isWaitingDebounce ? (
-            <div className={styles.statusRow} role="status">
-              Esperando 1 segundo para buscar...
-            </div>
-          ) : productsQuery.isFetching ? (
-            <div className={styles.statusRow} role="status">
-              Buscando productos...
+          {isInitialLoading ? (
+            <div className={styles.statusRow}>
+              <SearchingIndicator label="Buscando..." />
             </div>
           ) : options.length === 0 ? (
             <div className={styles.statusRow}>
@@ -241,6 +272,7 @@ export function ProductSearchSelect({
               role="listbox"
               aria-label="Resultados de productos"
               className={styles.optionsList}
+              onScroll={handleListScroll}
             >
               {options.map((item) => {
                 const localPrice = getLocalPrice(item, currency);
@@ -292,6 +324,12 @@ export function ProductSearchSelect({
                   </li>
                 );
               })}
+
+              {productsQuery.isFetchingNextPage ? (
+                <li role="presentation" className={styles.loadMoreRow}>
+                  <SearchingIndicator compact label="Buscando..." />
+                </li>
+              ) : null}
             </ul>
           )}
         </div>

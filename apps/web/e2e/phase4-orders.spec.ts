@@ -45,9 +45,9 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     const custSearchInput = page.getByPlaceholder('Buscar un producto...');
     await expect(custSearchInput).toBeFocused();
     await custSearchInput.fill('Marco Diploma Ejecutivo Nogal');
-    await expect(
-      page.getByText('Esperando 1 segundo para buscar...'),
-    ).toBeVisible();
+    await expect(page.getByText('Buscando...')).toBeVisible();
+    await expect(page.getByTestId('search-spinner')).toBeVisible();
+    await expect(page.getByText(/Esperando 1/i)).toHaveCount(0);
 
     const custOption = page.getByRole('option', {
       name: /Marco Diploma Ejecutivo Nogal/i,
@@ -110,16 +110,44 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await page.getByRole('button', { name: 'Descuento de línea' }).first().click();
     await expect(page.getByLabel('Tipo descuento')).toHaveCount(0);
 
-    const custSelect = page.getByLabel('Cliente');
-    const quetzalOption = custSelect.locator('option', {
-      hasText: 'Decoraciones El Quetzal',
-    });
-    const quetzalId = await quetzalOption.getAttribute('value');
-    expect(quetzalId).toBeTruthy();
-    await custSelect.selectOption(quetzalId!);
+    // Cliente con búsqueda debounced y lazy load por scroll
+    await page.locator('#order-customer').click();
+    const custListbox = page.getByRole('listbox', { name: 'Resultados de clientes' });
+    await expect(custListbox).toBeVisible({ timeout: 5000 });
+    await expect(custListbox.getByRole('option')).toHaveCount(10);
 
-    // Línea 1: Marco Clásico Azul Marino (con historial Q 175.00 para El Quetzal)
+    await custListbox.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect
+      .poll(async () => custListbox.getByRole('option').count(), { timeout: 5000 })
+      .toBeGreaterThan(10);
+
+    const custComboSearch = page.getByPlaceholder('Buscar un cliente...');
+    await custComboSearch.fill('Quetzal');
+    await expect(page.getByText('Buscando...')).toBeVisible();
+    await expect(page.getByTestId('search-spinner')).toBeVisible();
+    await expect(page.getByText(/Esperando 1/i)).toHaveCount(0);
+
+    const quetzalOption = custListbox.getByRole('option', {
+      name: /Decoraciones El Quetzal/i,
+    });
+    await expect(quetzalOption).toBeVisible({ timeout: 5000 });
+    await quetzalOption.click();
+
+    // Línea 1: ProductSearchSelect lazy load por scroll (10 -> 14 productos) + búsqueda Marco Clásico Azul Marino
     await page.locator('#line-prod-0').click();
+    const prodListbox = page.getByRole('listbox', { name: 'Resultados de productos' });
+    await expect(prodListbox).toBeVisible({ timeout: 5000 });
+    await expect(prodListbox.getByRole('option')).toHaveCount(10);
+
+    await prodListbox.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect
+      .poll(async () => prodListbox.getByRole('option').count(), { timeout: 5000 })
+      .toBeGreaterThan(10);
+
     await page.getByPlaceholder('Buscar un producto...').fill('Marco Clásico Azul');
     const marcoOpt = page.getByRole('option', {
       name: /Marco Clásico Azul Marino/i,
@@ -135,6 +163,18 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await expect(
       page.getByRole('tooltip').getByText(/175\.00/),
     ).toBeVisible();
+
+    const infoBtn = page.getByRole('button', { name: 'Ver último precio línea 1' });
+    const subtotalLabel = page.locator('span', { hasText: /^Subtotal$/ }).first();
+    const infoBox = await infoBtn.boundingBox();
+    const subBox = await subtotalLabel.boundingBox();
+    expect(infoBox).not.toBeNull();
+    expect(subBox).not.toBeNull();
+    if (!isMobile && infoBox && subBox) {
+      expect(infoBox.x + infoBox.width).toBeLessThanOrEqual(subBox.x - 4);
+    } else if (isMobile && infoBox && subBox) {
+      expect(infoBox.y + infoBox.height).toBeLessThanOrEqual(subBox.y);
+    }
 
     // Agregar Línea 2: verificar que Marco Clásico Azul Marino NO aparece (sin repetidos)
     // y elegir Cuadro Abstracto Terracota que no tiene historial (sin mostrar "sin historial")

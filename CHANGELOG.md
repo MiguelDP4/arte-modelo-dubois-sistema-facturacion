@@ -24,8 +24,11 @@ Todos los cambios relevantes del proyecto se registran en este archivo siguiendo
   - Suites actualizadas: Vitest en `shared`, `api` y `web` (>85% cobertura) + E2E Playwright Fase 4 (Desktop + Mobile).
 
 ### Mejorado
-- **Selector de Productos Perezoso y Experiencia de Líneas (`ProductSearchSelect` & `OrderForm`):**
-  - Reemplazado el `<select>` precargado por el combobox `ProductSearchSelect`: nunca descarga el catálogo completo al abrir `/pedidos/nuevo` o `/pedidos/[id]/editar`, muestra el placeholder `"Buscar un producto..."`, aplica **debounce estricto de `1000 ms`** antes de consultar la API, excluye productos ya agregados al pedido (`?excludeIds` en `/api/catalog` y `/api/products` + filtro local) y despliega resultados con miniatura, nombre y precio en la moneda local del cliente (ocultando precios/stock cuando opera un `CUSTOMER`).
+- **Buscadores con Indicador Animado (`SearchingIndicator`) y Carga Perezosa por Scroll (`CustomerSearchSelect` & `ProductSearchSelect`):**
+  - Creado el componente `SearchingIndicator` con spinner animado (`Loader2`) y etiqueta `"Buscando..."` (eliminando todo texto `"Esperando 1 segundo..."`) en `/catalogo`, `/productos`, `/clientes`, `/usuarios`, `/pedidos` y en los selectores de pedidos.
+  - Convertido `ProductSearchSelect` a `useInfiniteQuery` con carga perezosa al llegar al final del scroll (10 productos por página, sin precargar el catálogo completo al abrir `/pedidos/nuevo` o `/pedidos/[id]/editar`), debounce estricto de `1000 ms`, exclusión de repetidos (`?excludeIds`) y vista con miniatura, nombre y precio en moneda local para staff.
+  - Creado `CustomerSearchSelect` con el mismo patrón de búsqueda perezosa (`GET /customers` paginado de 10 en 10 por scroll y debounce `1000 ms`, eliminando la precarga completa de clientes al abrir `/pedidos/nuevo`).
+  - Reajustada la grilla de líneas en `OrderForm.module.scss` para dar holgura al encabezado `"Precio unit."` junto al ícono de tooltip y evitar que se monte sobre `"Subtotal"`.
   - Filas de pedido compactas: eliminado el encabezado `"Línea #N"`, botón de eliminar alineado inline únicamente con ícono de basurero (`Trash2`, sin texto `"Quitar"`), selector/monto de descuento ocultos detrás de botón con ícono (`Percent`) y tooltip de último precio renderizado únicamente cuando existe historial real de ventas previas para ese `(cliente, producto)` (sin mostrar `"sin historial"`).
 - **Legibilidad Monetaria y Controles Numéricos:**
   - `formatCurrency` une el símbolo monetario y las cifras mediante espacio inseparable (`\u00A0`) combinado con `white-space: nowrap; font-variant-numeric: tabular-nums; flex-shrink: 0` en detalle y listados de pedidos para evitar saltos de línea con montos de 7 o más dígitos.

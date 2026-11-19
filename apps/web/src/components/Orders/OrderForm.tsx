@@ -23,6 +23,10 @@ import { apiClient, getApiErrorMessage } from '@/lib/api-client';
 import type { CustomerDto } from '@/types/customer';
 import type { LastPriceResponse, OrderDto } from '@/types/order';
 import {
+  CustomerSearchSelect,
+  type SelectedCustomerOption,
+} from './CustomerSearchSelect';
+import {
   ProductSearchSelect,
   type SelectedProductOption,
 } from './ProductSearchSelect';
@@ -138,23 +142,44 @@ export function OrderForm({
     Record<string, LastPriceResponse>
   >({});
 
-  const customersQuery = useQuery({
-    queryKey: ['orders-form-customers'],
-    enabled: !isCustomerUser && mode === 'create',
+  const [selectedCustomerState, setSelectedCustomerState] =
+    useState<SelectedCustomerOption | null>(() =>
+      initialOrder
+        ? {
+            id: initialOrder.customer.id,
+            companyName: initialOrder.customer.companyName,
+            managerName: initialOrder.customer.managerName,
+            countryLabel: initialOrder.customer.countryLabel,
+            currency: initialOrder.customer.currency,
+            taxId: initialOrder.customer.taxId,
+          }
+        : null,
+    );
+
+  const initialCustomerQuery = useQuery({
+    queryKey: ['orders-form-initial-customer', initialCustomerId],
+    enabled:
+      mode === 'create' &&
+      !isCustomerUser &&
+      Boolean(initialCustomerId) &&
+      !selectedCustomerState,
     queryFn: async () => {
-      const res = await apiClient.get('/customers', {
-        params: { pageSize: 0 },
-      });
-      return (res.data.customers || []) as CustomerDto[];
+      const res = await apiClient.get(`/customers/${initialCustomerId}`);
+      const c = (res.data.customer || res.data) as CustomerDto;
+      return {
+        id: c.id,
+        companyName: c.companyName,
+        managerName: c.managerName,
+        countryLabel: c.countryLabel,
+        currency: c.currency,
+        taxLabel: c.taxLabel,
+        taxId: c.taxId,
+      } satisfies SelectedCustomerOption;
     },
   });
 
-  const selectedCustomer = useMemo(() => {
-    if (initialOrder) {
-      return initialOrder.customer;
-    }
-    return (customersQuery.data || []).find((c) => c.id === customerId) ?? null;
-  }, [customersQuery.data, customerId, initialOrder]);
+  const selectedCustomer =
+    selectedCustomerState ?? initialCustomerQuery.data ?? null;
 
   const activeCurrency: Currency = selectedCustomer?.currency ?? 'GTQ';
 
@@ -201,13 +226,11 @@ export function OrderForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId, lines.map((l) => l.productId).join('|'), isCustomerUser]);
 
-  const handleCustomerChange = (nextCustomerId: string) => {
-    setCustomerId(nextCustomerId);
+  const handleCustomerSelect = (nextCust: SelectedCustomerOption) => {
+    setCustomerId(nextCust.id);
+    setSelectedCustomerState(nextCust);
     setActiveTooltipKey(null);
-    const nextCust = (customersQuery.data || []).find(
-      (c) => c.id === nextCustomerId,
-    );
-    const nextCurr = nextCust?.currency ?? 'GTQ';
+    const nextCurr = nextCust.currency;
     setLines((prev) =>
       prev.map((line) => {
         if (!line.productId || line.priceEditedManually) return line;
@@ -220,11 +243,9 @@ export function OrderForm({
       }),
     );
 
-    if (nextCustomerId) {
-      for (const line of lines) {
-        if (line.productId) {
-          void fetchLastPriceForPair(nextCustomerId, line.productId, line.key);
-        }
+    for (const line of lines) {
+      if (line.productId) {
+        void fetchLastPriceForPair(nextCust.id, line.productId, line.key);
       }
     }
   };
@@ -436,21 +457,11 @@ export function OrderForm({
                   value={`${initialOrder.customer.companyName} (${initialOrder.currency})`}
                 />
               ) : (
-                <select
+                <CustomerSearchSelect
                   id="order-customer"
-                  required
-                  value={customerId}
-                  onChange={(e) => handleCustomerChange(e.target.value)}
-                >
-                  <option value="">Selecciona un cliente...</option>
-                  {(customersQuery.data || [])
-                    .filter((c) => c.isActive)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.companyName} ({c.countryLabel} · {c.currency})
-                      </option>
-                    ))}
-                </select>
+                  value={selectedCustomer}
+                  onSelect={handleCustomerSelect}
+                />
               )}
             </div>
 

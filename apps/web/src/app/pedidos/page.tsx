@@ -22,6 +22,7 @@ import {
   type TableColumn,
 } from '@/components/ResponsiveTable/ResponsiveTable';
 import { Pagination } from '@/components/Pagination/Pagination';
+import { SearchingIndicator } from '@/components/SearchingIndicator/SearchingIndicator';
 import {
   ApprovalBadge,
   FulfillmentBadge,
@@ -194,10 +195,9 @@ function PedidosContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {isWaitingDebounce ? (
-            <span className={styles.debounceHint} role="status">
-              Esperando 1 segundo para buscar...
-            </span>
+          {isWaitingDebounce ||
+          (ordersQuery.isFetching && debouncedSearch.trim().length > 0) ? (
+            <SearchingIndicator compact />
           ) : null}
         </div>
 

@@ -20,6 +20,7 @@ import {
   type TableColumn,
 } from '@/components/ResponsiveTable/ResponsiveTable';
 import { Pagination } from '@/components/Pagination/Pagination';
+import { SearchingIndicator } from '@/components/SearchingIndicator/SearchingIndicator';
 import { Modal } from '@/components/Modal/Modal';
 import { ConfirmModal } from '@/components/Modal/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -289,10 +290,9 @@ function ClientesContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {search.trim() !== debouncedSearch.trim() && (
-            <span className={styles.debounceHint} role="status">
-              Esperando 1s para buscar...
-            </span>
+          {(search.trim() !== debouncedSearch.trim() ||
+            (customersQuery.isFetching && debouncedSearch.trim().length > 0)) && (
+            <SearchingIndicator compact />
           )}
         </div>
 

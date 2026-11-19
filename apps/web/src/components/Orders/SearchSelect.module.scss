@@ -62,7 +62,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--text-brand-emphasis);
 }
 
 .selectedText {
@@ -182,7 +182,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--text-brand-emphasis);
 }
 
 .optionInfo {
@@ -203,6 +203,9 @@
 .optionMeta {
   font-size: 0.8rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .optionPrice {
@@ -212,4 +215,22 @@
   color: var(--text-brand-emphasis);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.optionBadge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  background-color: var(--background-surface);
+  color: var(--text-brand-emphasis);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.loadMoreRow {
+  padding: 10px 14px;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--background-surface);
 }

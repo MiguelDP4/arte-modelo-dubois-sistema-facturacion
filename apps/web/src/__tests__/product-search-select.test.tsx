@@ -68,6 +68,14 @@ describe('ProductSearchSelect', () => {
             images: [],
           },
         ],
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 1,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
       },
     });
 
@@ -120,9 +128,21 @@ describe('ProductSearchSelect', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('waits 1000ms debounce before sending typed search requests to the API', async () => {
+  it('shows Buscando... with spinner during 1000ms debounce before sending search request', async () => {
     vi.useFakeTimers();
-    mockedApi.get.mockResolvedValue({ data: { products: [] } });
+    mockedApi.get.mockResolvedValue({
+      data: {
+        products: [],
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 0,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
+      },
+    });
 
     renderSelect(
       <ProductSearchSelect
@@ -143,9 +163,9 @@ describe('ProductSearchSelect', () => {
 
     const searchInput = screen.getByPlaceholderText('Buscar un producto...');
     fireEvent.change(searchInput, { target: { value: 'Espejo' } });
-    expect(
-      screen.getByText('Esperando 1 segundo para buscar...'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Buscando...')).toBeInTheDocument();
+    expect(screen.getByTestId('search-spinner')).toBeInTheDocument();
+    expect(screen.queryByText(/Esperando 1/i)).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(950);
@@ -165,6 +185,92 @@ describe('ProductSearchSelect', () => {
     });
   });
 
+  it('lazy loads page 2 when scrolling to the bottom of the dropdown list', async () => {
+    mockedApi.get.mockImplementation(async (_url, config) => {
+      const page = (config?.params as { page?: number })?.page ?? 1;
+      if (page === 1) {
+        return {
+          data: {
+            products: [
+              {
+                id: 'prod-1',
+                name: 'Marco Página 1',
+                priceGTQ: 100,
+                stock: 10,
+                codes: [{ code: 'AMD-P1', label: 'Interno', isPrimary: true }],
+                images: [],
+              },
+            ],
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: 12,
+              totalPages: 2,
+              hasPrev: false,
+              hasNext: true,
+            },
+          },
+        };
+      }
+      return {
+        data: {
+          products: [
+            {
+              id: 'prod-11',
+              name: 'Espejo Página 2',
+              priceGTQ: 250,
+              stock: 5,
+              codes: [{ code: 'AMD-P2', label: 'Interno', isPrimary: true }],
+              images: [],
+            },
+          ],
+          pagination: {
+            page: 2,
+            pageSize: 10,
+            total: 12,
+            totalPages: 2,
+            hasPrev: true,
+            hasNext: false,
+          },
+        },
+      };
+    });
+
+    renderSelect(
+      <ProductSearchSelect
+        value={null}
+        excludedProductIds={[]}
+        currency="GTQ"
+        isCustomerMode={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByText('Marco Página 1')).toBeInTheDocument();
+
+    const list = screen.getByRole('listbox', {
+      name: 'Resultados de productos',
+    });
+    Object.defineProperty(list, 'scrollHeight', { value: 600, configurable: true });
+    Object.defineProperty(list, 'clientHeight', { value: 280, configurable: true });
+    Object.defineProperty(list, 'scrollTop', { value: 0, configurable: true });
+    fireEvent.scroll(list);
+    expect(mockedApi.get).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(list, 'scrollTop', { value: 310, configurable: true });
+    fireEvent.scroll(list);
+
+    await waitFor(() => {
+      expect(mockedApi.get).toHaveBeenCalledWith('/products', {
+        params: { page: 2, pageSize: 10 },
+      });
+    });
+
+    expect(await screen.findByText('Marco Página 1')).toBeInTheDocument();
+    expect(await screen.findByText('Espejo Página 2')).toBeInTheDocument();
+  });
+
   it('queries /catalog without prices/stock in customer mode and closes on Escape or outside click', async () => {
     mockedApi.get.mockResolvedValue({
       data: {
@@ -176,6 +282,14 @@ describe('ProductSearchSelect', () => {
             images: [],
           },
         ],
+        pagination: {
+          page: 1,
+          pageSize: 10,
+          total: 1,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
       },
     });
 

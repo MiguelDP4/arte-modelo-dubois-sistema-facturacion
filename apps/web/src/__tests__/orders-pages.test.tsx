@@ -11,7 +11,12 @@ import OrderDetailPage from '@/app/pedidos/[id]/page';
 import EditarPedidoPage from '@/app/pedidos/[id]/editar/page';
 import HomePage from '@/app/page';
 import { apiClient } from '@/lib/api-client';
-import { mockPush, setMockParams, setMockPathname } from './setup';
+import {
+  mockPush,
+  setMockParams,
+  setMockPathname,
+  setMockSearchParams,
+} from './setup';
 
 vi.mock('@/lib/api-client', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api-client')>(
@@ -158,6 +163,8 @@ describe('Orders Module Pages (Phase 4)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPush.mockReset();
+    setMockSearchParams({});
+    setMockParams({});
   });
 
   it('lists orders with 3 decoupled badges and supports pageSize=0 (Todos) pagination', async () => {
@@ -215,11 +222,22 @@ describe('Orders Module Pages (Phase 4)', () => {
               {
                 id: 'cust-1',
                 companyName: 'Decoraciones El Quetzal, S.A.',
+                managerName: 'Carlos Méndez',
                 countryLabel: 'Guatemala',
                 currency: 'GTQ',
+                taxLabel: 'NIT',
+                taxId: '4589123-4',
                 isActive: true,
               },
             ],
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: 1,
+              totalPages: 1,
+              hasPrev: false,
+              hasNext: false,
+            },
           },
         };
       }
@@ -239,6 +257,14 @@ describe('Orders Module Pages (Phase 4)', () => {
                 images: [{ url: '/seed/marco-clasico.svg', altText: 'Marco' }],
               },
             ],
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: 1,
+              totalPages: 1,
+              hasPrev: false,
+              hasNext: false,
+            },
           },
         };
       }
@@ -262,17 +288,20 @@ describe('Orders Module Pages (Phase 4)', () => {
     renderApp(<NuevoPedidoPage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('option', { name: /Decoraciones El Quetzal/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Cliente')).toBeInTheDocument();
     });
 
+    expect(mockedApi.get).not.toHaveBeenCalledWith('/customers', expect.anything());
     expect(screen.queryByText(/Línea #1/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Quitar producto' })).toHaveTextContent('');
     expect(screen.queryByLabelText('Tipo descuento')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Cliente'), {
-      target: { value: 'cust-1' },
+    fireEvent.click(screen.getByLabelText('Cliente'));
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Decoraciones El Quetzal/i }),
+    );
+    expect(mockedApi.get).toHaveBeenCalledWith('/customers', {
+      params: { page: 1, pageSize: 10 },
     });
 
     fireEvent.click(screen.getByLabelText('Producto'));
@@ -597,9 +626,26 @@ describe('Orders Module Pages (Phase 4)', () => {
     });
     unlinked.unmount();
 
-    // Staff CONSIGNMENT toggle + add/remove lines + no tooltip when hasHistory=false
+    // Staff CONSIGNMENT toggle + add/remove lines + no tooltip when hasHistory=false + initialCustomerId preload
+    setMockSearchParams({ customerId: 'cust-1' });
     mockedApi.post.mockResolvedValue(staffSession);
     mockedApi.get.mockImplementation(async (url: string) => {
+      if (url === '/customers/cust-1') {
+        return {
+          data: {
+            customer: {
+              id: 'cust-1',
+              companyName: 'Decoraciones El Quetzal, S.A.',
+              managerName: 'Carlos Méndez',
+              countryLabel: 'Guatemala',
+              currency: 'GTQ',
+              taxLabel: 'NIT',
+              taxId: '4589123-4',
+              isActive: true,
+            },
+          },
+        };
+      }
       if (url === '/customers') {
         return {
           data: {
@@ -607,11 +653,22 @@ describe('Orders Module Pages (Phase 4)', () => {
               {
                 id: 'cust-1',
                 companyName: 'Decoraciones El Quetzal, S.A.',
+                managerName: 'Carlos Méndez',
                 countryLabel: 'Guatemala',
                 currency: 'GTQ',
+                taxLabel: 'NIT',
+                taxId: '4589123-4',
                 isActive: true,
               },
             ],
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: 1,
+              totalPages: 1,
+              hasPrev: false,
+              hasNext: false,
+            },
           },
         };
       }
@@ -628,6 +685,14 @@ describe('Orders Module Pages (Phase 4)', () => {
                 images: [],
               },
             ],
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: 1,
+              totalPages: 1,
+              hasPrev: false,
+              hasNext: false,
+            },
           },
         };
       }
@@ -649,13 +714,13 @@ describe('Orders Module Pages (Phase 4)', () => {
     });
     const newStaff = renderApp(<NuevoPedidoPage />);
     await waitFor(() => {
-      expect(
-        screen.getByRole('option', { name: /Decoraciones El Quetzal/i }),
-      ).toBeInTheDocument();
+      expect(mockedApi.get).toHaveBeenCalledWith('/customers/cust-1');
+      expect(screen.getByText('[Guatemala · GTQ]')).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText('Cliente'), {
-      target: { value: 'cust-1' },
-    });
+    fireEvent.click(screen.getByLabelText('Cliente'));
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Decoraciones El Quetzal/i }),
+    );
     fireEvent.click(screen.getByLabelText('Producto'));
     fireEvent.click(
       await screen.findByRole('option', { name: /Espejo Nuevo/i }),

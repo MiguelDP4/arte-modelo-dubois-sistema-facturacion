@@ -39,9 +39,9 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 2 & Fase 3 E2E', () => {
 
     // Buscar por código secundario PROV-9910 del seed con debounce de 1s
     await page.getByLabel('Buscar producto o código').fill('PROV-9910');
-    await expect(
-      page.getByText('Esperando 1 segundo para buscar...'),
-    ).toBeVisible();
+    await expect(page.getByText('Buscando...')).toBeVisible();
+    await expect(page.getByTestId('search-spinner')).toBeVisible();
+    await expect(page.getByText(/Esperando 1/i)).toHaveCount(0);
     await expect(
       page.getByRole('heading', { name: /Marco Clásico Azul Marino/i }),
     ).toBeVisible({ timeout: 5000 });

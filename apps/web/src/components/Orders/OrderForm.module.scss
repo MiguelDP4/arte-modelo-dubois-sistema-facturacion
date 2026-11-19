@@ -109,11 +109,29 @@
 .staffLineGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  column-gap: 14px;
+  row-gap: 10px;
 
-  @media (min-width: 900px) {
-    grid-template-columns: minmax(260px, 2.5fr) 92px 136px 115px auto;
+  > * {
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    grid-template-columns: 88px minmax(176px, 1fr) minmax(112px, auto) auto;
     align-items: end;
+
+    > :first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (min-width: 1080px) {
+    grid-template-columns: minmax(200px, 1fr) 84px minmax(176px, 188px) minmax(112px, auto) auto;
+    align-items: end;
+
+    > :first-child {
+      grid-column: auto;
+    }
   }
 }
 
@@ -162,13 +180,15 @@
 .priceFieldWrap {
   @include input-group;
   position: relative;
+  min-width: 0;
 }
 
 .priceLabelRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 20px;
 
   label {
     white-space: nowrap;
@@ -178,9 +198,11 @@
 .tooltipToggleBtn {
   border: 1px solid var(--border-secondary);
   background-color: var(--background-elevated);
-  color: var(--text-primary);
-  width: 24px;
-  height: 24px;
+  color: var(--text-brand-emphasis);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -193,6 +215,7 @@
   top: calc(100% + 4px);
   left: 0;
   min-width: 240px;
+  max-width: min(280px, calc(100vw - 48px));
   z-index: 30;
   display: flex;
   flex-direction: column;
@@ -229,6 +252,9 @@
     font-size: 0.82rem;
     font-weight: 700;
     color: var(--text-secondary);
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
   }
 
   strong {

@@ -13,6 +13,7 @@ import { AppShell } from '@/components/AppShell/AppShell';
 import { Topbar } from '@/components/Topbar/Topbar';
 import { Modal } from '@/components/Modal/Modal';
 import { Pagination } from '@/components/Pagination/Pagination';
+import { SearchingIndicator } from '@/components/SearchingIndicator/SearchingIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiClient } from '@/lib/api-client';
@@ -110,10 +111,9 @@ function CatalogContent({ showStaffPrices }: { showStaffPrices: boolean }) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        {isWaitingDebounce ? (
-          <span className={styles.debounceHint} role="status">
-            Esperando 1 segundo para buscar...
-          </span>
+        {isWaitingDebounce ||
+        (catalogQuery.isFetching && debouncedSearch.trim().length > 0) ? (
+          <SearchingIndicator compact />
         ) : null}
       </section>
 

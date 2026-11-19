@@ -145,14 +145,14 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
   - *Tema Claro:* Fondos `#ffe7c8` / `#f5d5b7` / `#fff1de` / `#fdfaf6`; marca azul marino `#06005c` / `#08042b` / `#110b51`.
   - *Tema Oscuro (`html[data-theme="dark"]`):* Fondos carbón `#242424` / `#1a1a1a` / `#292929` / `#333333`; marca vino/borgoña `#250000` / `#531212` / `#762323`; acentos dorado `#e0c942` y rojo `#b61212`.
 - **Mobile-First:** Base diseñada desde 320px/375px con áreas táctiles `>= 44px`, cero scroll horizontal y `ResponsiveTable` que convierte tablas en cards apiladas en móvil.
-- **Paginación y Debounce (`1000 ms`):** Componente `Pagination` con selector de tamaño de página (`10`, `20`, `50`, `100` y `Todos` = `pageSize=0`) respaldado por consultas paginadas en todos los endpoints de listado, y hook `useDebouncedValue` (`SEARCH_DEBOUNCE_MS = 1000`) en todos los buscadores para evitar solicitudes excesivas al servidor.
+- **Paginación y Debounce (`1000 ms`):** Componente `Pagination` con selector de tamaño de página (`10`, `20`, `50`, `100` y `Todos` = `pageSize=0`) respaldado por consultas paginadas en todos los endpoints de listado, componente `SearchingIndicator` (`"Buscando..."` con spinner animado) y hook `useDebouncedValue` (`SEARCH_DEBOUNCE_MS = 1000`) en todos los buscadores para evitar solicitudes excesivas al servidor.
 - **Sin `alert()` / `confirm()`:** Todo aviso o confirmación usa `ToastContainer`, `Modal` o `ConfirmModal`.
 
 ### Páginas Implementadas
 - `/login`, `/registro`, `/verificar-cuenta`, `/registro-invitado` — Flujos de acceso y registro público.
 - `/` — Dashboard inicial con accesos rápidos por permiso.
 - `/catalogo` — Catálogo público (sin precios/stock) y consulta interna para staff con galería modal.
-- `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]` y `/pedidos/[id]/editar` — Listado paginado de pedidos B2B, creación/edición para staff y clientes con `ProductSearchSelect` (búsqueda perezosa con debounce `1000 ms`, exclusión de repetidos y tooltip condicional solo con historial previo), confirmación, empaque por delta y despachos parciales/totales.
+- `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]` y `/pedidos/[id]/editar` — Listado paginado de pedidos B2B, creación/edición para staff y clientes con `CustomerSearchSelect` y `ProductSearchSelect` (búsqueda perezosa con debounce `1000 ms`, spinner `"Buscando..."`, carga incremental por scroll de 10 en 10, exclusión de repetidos y tooltip condicional solo con historial previo), confirmación, empaque por delta y despachos parciales/totales.
 - `/productos` — Gestión de catálogo multimoneda, códigos múltiples, subida de fotos y Kardex (`products.read_prices`).
 - `/clientes` y `/clientes/[id]` — Cartera regional con etiqueta fiscal dinámica y vinculación de usuarios (`customers.read`).
 - `/usuarios` — Gestión de usuarios e invitaciones (`users.read`).
