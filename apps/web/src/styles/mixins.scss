@@ -1,0 +1,173 @@
+/* ============================================================================
+ * Mixins Reutilizables Mobile-First — Material Design Recto
+ * ============================================================================ */
+
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--touch-min);
+  padding: 10px 18px;
+  border-radius: 0;
+  font-family: var(--font-base);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  box-shadow: var(--shadow-button);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--shadow-button-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background-color: var(--brand-themed-dark);
+  color: var(--text-on-brand);
+
+  &:hover:not(:disabled) {
+    background-color: var(--brand-themed-base);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+
+  &:hover:not(:disabled) {
+    background-color: var(--brand-themed-dark);
+    color: var(--text-on-brand);
+    border-color: transparent;
+  }
+}
+
+@mixin button-danger {
+  @include button-base;
+  background-color: var(--color-danger);
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
+}
+
+@mixin card-surface {
+  background-color: var(--background-elevated);
+  border: none;
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
+}
+
+@mixin input-field {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 1px solid var(--border-secondary);
+  background-color: var(--background-input);
+  color: var(--text-primary);
+  font-family: var(--font-base);
+  font-size: 1rem;
+  box-shadow: var(--shadow-xs);
+
+  &::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--brand-themed-dark);
+    box-shadow: var(--shadow-focus);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+@mixin input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  input,
+  select,
+  textarea {
+    @include input-field;
+  }
+}
+
+@mixin page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@mixin page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.45rem;
+    color: var(--text-primary);
+  }
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    h1 {
+      font-size: 1.75rem;
+    }
+  }
+}
+
+@mixin badge-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}

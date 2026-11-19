@@ -139,6 +139,7 @@ Sistema Facturación Arte Modelo 2.0/
 1. **Estética Material Design Recto (Obligatorio):**
    - **Esquinas 100% rectas:** `border-radius: 0` en todos los componentes (tarjetas, tablas, botones, inputs, selects, modales, badges, dropdowns, barra lateral y botones de acción).
    - **Colores planos y sombras suaves:** Sin gradientes decorativos. Sombras suaves estilo elevación Material Design aplicadas de forma consistente a cards, tablas, botones, inputs enfocados/elevados, modales, dropdowns, Topbar y Sidebar.
+   - **Cards, Sidebar y Botones sin contornos innecesarios:** Las cards y el Sidebar **no llevan bordes exteriores** (`border: none`), distinguiéndose únicamente como "hojas de papel" por su sombra. Los botones solo llevan borde cuando su fondo coincide con el fondo del elemento padre; cuando tienen fondo contrastante (primarios, peligro, activos), van sin borde (`border: none`) y con una sombra muy tenue. El logo PNG mantiene fondo transparente y usa `filter: drop-shadow(...)` para perfilado sutil.
 2. **Paleta de Colores (`theme.scss` + SCSS Modules):**
    - Conservar la identidad de v1.0:
      - *Tema Claro:* Fondos crema/durazno (`#ffe7c8`, `#f5d5b7`, `#fff1de`, `#fdfaf6`), marca y Topbar azul marino (`#06005c`, `#08042b`, `#110b51`, `#302c61`) y acentos azul rey (`#1c318d`, `#2d22a3`).

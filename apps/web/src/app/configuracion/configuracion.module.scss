@@ -1,0 +1,144 @@
+@use '../../styles/mixins.scss' as *;
+
+.page {
+  @include page-container;
+}
+
+.header {
+  @include page-header;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabBtn {
+  @include button-secondary;
+
+  &.active {
+    background-color: var(--brand-themed-dark);
+    color: var(--text-on-brand);
+    border-color: transparent;
+  }
+}
+
+.card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  max-width: 640px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field {
+  @include input-group;
+}
+
+.fullSpan {
+  grid-column: 1 / -1;
+}
+
+.primaryBtn {
+  @include button-primary;
+  align-self: flex-start;
+}
+
+.roleSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.moduleGroup {
+  border: none;
+  background-color: var(--background-table);
+  box-shadow: var(--shadow-sm);
+}
+
+.moduleHeader {
+  background-color: var(--brand-themed-darkest);
+  color: var(--text-on-brand);
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.permList {
+  display: flex;
+  flex-direction: column;
+}
+
+.permRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.permInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    color: var(--text-primary);
+    font-size: 0.94rem;
+  }
+
+  span {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+}
+
+.switchBtn {
+  min-width: 84px;
+  min-height: var(--touch-min);
+  padding: 6px 12px;
+  border: none;
+  border-radius: 0;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-button);
+
+  &.on {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border: none;
+  }
+
+  &.off {
+    background-color: var(--background-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.helperText {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

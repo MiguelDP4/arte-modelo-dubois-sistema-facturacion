@@ -1,0 +1,105 @@
+.wrapper {
+  width: 100%;
+}
+
+/* Mobile-First: Cards apiladas sin scroll horizontal */
+.mobileCards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.card {
+  background-color: var(--background-table);
+  border: none;
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.cardLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.cardValue {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* Desktop: Tabla tradicional recta con elevación */
+.desktopTable {
+  display: none;
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--background-table);
+  border: none;
+  box-shadow: var(--shadow-sm);
+
+  @media (min-width: 768px) {
+    display: table;
+  }
+
+  thead {
+    background-color: var(--brand-themed-darkest);
+    color: var(--text-on-brand);
+
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+  }
+
+  tbody {
+    tr {
+      border-top: 1px solid var(--border-subtle);
+
+      &:nth-child(even) {
+        background-color: var(--background-table-stripe);
+      }
+    }
+
+    td {
+      padding: 12px 14px;
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+  }
+}
+
+.emptyState {
+  background-color: var(--background-elevated);
+  border: none;
+  box-shadow: var(--shadow-sm);
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}

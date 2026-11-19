@@ -1,0 +1,29 @@
+{
+  "name": "arte-modelo-dubois-2",
+  "version": "2.0.0-alpha.1",
+  "private": true,
+  "description": "Sistema de Facturación y Pedidos B2B — Arte Modelo Dubois 2.0",
+  "workspaces": [
+    "packages/shared",
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/api",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "build:shared": "npm run build --workspace=packages/shared",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web",
+    "test": "npm run test --workspace=packages/shared && npm run test --workspace=apps/api && npm run test --workspace=apps/web",
+    "test:coverage": "npm run test:coverage --workspace=packages/shared && npm run test:coverage --workspace=apps/api && npm run test:coverage --workspace=apps/web",
+    "test:e2e": "npm run test:e2e --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/api && npm run lint --workspace=apps/web",
+    "db:local:setup": "npm run db:sqlite:generate --workspace=apps/api && npm run db:sqlite:push --workspace=apps/api && npm run db:seed --workspace=apps/api",
+    "db:test:setup": "npm run db:sqlite:generate --workspace=apps/api && npm run db:test:push --workspace=apps/api"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,75 @@
+export const ROLES = ['ADMIN', 'EMPLOYEE', 'CUSTOMER'] as const;
+export type Role = (typeof ROLES)[number];
+
+export const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: 'Administrador',
+  EMPLOYEE: 'Empleado',
+  CUSTOMER: 'Cliente',
+};
+
+export const CURRENCIES = ['GTQ', 'HNL', 'NIO', 'USD'] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  GTQ: 'Q',
+  HNL: 'L',
+  NIO: 'C$',
+  USD: '$',
+};
+
+export const COUNTRIES = ['GT', 'HN', 'NI', 'SV', 'OTHER'] as const;
+export type CountryCode = (typeof COUNTRIES)[number];
+
+export const COUNTRY_CURRENCY: Record<CountryCode, Currency> = {
+  GT: 'GTQ',
+  HN: 'HNL',
+  NI: 'NIO',
+  SV: 'USD',
+  OTHER: 'USD',
+};
+
+export const COUNTRY_TAX_LABEL: Record<CountryCode, string> = {
+  GT: 'NIT',
+  HN: 'RTN',
+  NI: 'RUC',
+  SV: 'DTE / NIT',
+  OTHER: 'ID Fiscal',
+};
+
+export const ORDER_TYPES = ['REGULAR', 'CONSIGNMENT'] as const;
+export type OrderType = (typeof ORDER_TYPES)[number];
+
+export const APPROVAL_STATUSES = [
+  'PENDING_CONFIRMATION',
+  'CONFIRMED',
+  'CANCELLED',
+] as const;
+export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
+
+export const FULFILLMENT_STATUSES = [
+  'PENDING_PACKING',
+  'PACKING',
+  'READY_TO_DISPATCH',
+  'PARTIALLY_DISPATCHED',
+  'COMPLETED',
+] as const;
+export type FulfillmentStatus = (typeof FULFILLMENT_STATUSES)[number];
+
+export const PAYMENT_STATUSES = [
+  'PENDING_PAYMENT',
+  'PARTIALLY_PAID',
+  'PAID',
+] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_METHODS = ['CASH', 'TRANSFER', 'CHECK'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export function formatCurrency(amount: number, currency: Currency): string {
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const formatted = safeAmount.toLocaleString('es-GT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${CURRENCY_SYMBOLS[currency]} ${formatted}`;
+}
