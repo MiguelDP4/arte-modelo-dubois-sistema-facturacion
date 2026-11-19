@@ -36,6 +36,42 @@ export const COUNTRY_TAX_LABEL: Record<CountryCode, string> = {
   OTHER: 'ID Fiscal',
 };
 
+export const COUNTRY_LABELS: Record<CountryCode, string> = {
+  GT: 'Guatemala',
+  HN: 'Honduras',
+  NI: 'Nicaragua',
+  SV: 'El Salvador',
+  OTHER: 'Otro',
+};
+
+export const PRODUCT_CODE_LABELS = [
+  'Interno',
+  'Proveedor',
+  'Cliente / Tienda',
+  'Alternativo',
+] as const;
+
+export const STOCK_MOVEMENT_TYPES = [
+  'INITIAL',
+  'MANUAL_IN',
+  'MANUAL_OUT',
+  'MANUAL_ADJUST',
+  'ORDER_PACK',
+  'ORDER_REVERT',
+  'CONSIGNMENT_RETURN',
+] as const;
+export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
+
+export const STOCK_MOVEMENT_LABELS: Record<StockMovementType, string> = {
+  INITIAL: 'Inventario inicial',
+  MANUAL_IN: 'Ingreso manual',
+  MANUAL_OUT: 'Salida manual',
+  MANUAL_ADJUST: 'Ajuste de inventario',
+  ORDER_PACK: 'Empaque de pedido',
+  ORDER_REVERT: 'Reversión de pedido',
+  CONSIGNMENT_RETURN: 'Devolución consignación',
+};
+
 export const ORDER_TYPES = ['REGULAR', 'CONSIGNMENT'] as const;
 export type OrderType = (typeof ORDER_TYPES)[number];
 

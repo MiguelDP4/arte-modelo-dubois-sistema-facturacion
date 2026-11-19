@@ -2,6 +2,20 @@
 
 Todos los cambios relevantes del proyecto se registran en este archivo siguiendo [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.0.0-alpha.2] — Fase 2 & Fase 3 (Catálogo Multimoneda, Kardex y Cartera Regional de Clientes)
+
+### Agregado
+- **Fase 2 — Catálogo Multimoneda, Códigos Múltiples y Kardex (`F2-01` a `F2-03`):**
+  - Modelos Prisma `Product`, `ProductCode`, `ProductImage` y `StockMovement` en esquemas PostgreSQL y SQLite.
+  - Endpoints `/api/catalog` público (estrictamente sin precios ni stock) y `/api/products` autenticado con control RBAC (`products.read`, `products.read_prices`, `products.manage`), búsqueda unificada por nombre o cualquier código registrado, soft-delete/restauración y Kardex transaccional (`INITIAL`, `MANUAL_IN`, `MANUAL_OUT`, `MANUAL_ADJUST`).
+  - Subida de fotografías con compresión en cliente y almacenamiento en Cloudflare R2 (o fallback local `/api/uploads/product-image`).
+  - Vistas Mobile-First `/catalogo` (visitante y staff) y `/productos` (tabla responsive/cards, editor dinámico de códigos múltiples, galería modal y Kardex).
+- **Fase 3 — Cartera Regional de Clientes (`F3-01` a `F3-02`):**
+  - Modelo `Customer` con moneda automática por país (`GT` → `GTQ`, `HN` → `HNL`, `NI` → `NIO`, `SV`/`OTHER` → `USD`) y etiqueta fiscal dinámica (`NIT`, `RTN`, `RUC`, `DTE / NIT`, `ID Fiscal`).
+  - Endpoints `/api/customers` 100% protegidos por autenticación/permisos (`customers.read`, `customers.manage`), con vinculación y desvinculación de cuentas de usuario `CUSTOMER` y bloqueo de desactivación mientras existan cuentas vinculadas.
+  - Vistas `/clientes` y `/clientes/[id]` Mobile-First.
+  - Seed realista en `apps/api/src/db/seed.ts` (4 usuarios, 4 clientes regionales y 6 productos multimoneda con múltiples códigos e imágenes SVG locales).
+
 ## [2.0.0-alpha.1] — Fase 0 & Fase 1 (Fundación, Diseño, Auth y RBAC Real)
 
 ### Agregado

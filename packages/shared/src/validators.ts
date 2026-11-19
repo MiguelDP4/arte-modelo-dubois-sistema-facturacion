@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES } from './constants';
+import { COUNTRIES, ROLES } from './constants';
 import { PERMISSION_CODES } from './permissions';
 
 export const passwordSchema = z
@@ -135,6 +135,203 @@ export const updateRolePermissionsSchema = z.object({
     .min(1, 'Debes enviar al menos un permiso para actualizar.'),
 });
 
+export const productCodeInputSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1, 'El código no puede estar vacío.')
+    .max(60, 'El código no puede superar 60 caracteres.'),
+  label: z
+    .string()
+    .trim()
+    .min(1, 'La etiqueta del código es obligatoria.')
+    .max(40, 'La etiqueta no puede superar 40 caracteres.')
+    .default('Interno'),
+  isPrimary: z.boolean().default(false),
+});
+
+export const productImageInputSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .min(1, 'La URL de la imagen es obligatoria.')
+    .max(500, 'La URL de la imagen es demasiado larga.'),
+  altText: z
+    .string()
+    .trim()
+    .max(160, 'El texto alternativo no puede superar 160 caracteres.')
+    .optional()
+    .nullable(),
+});
+
+export const priceFieldSchema = z
+  .number()
+  .min(0, 'El precio no puede ser negativo.')
+  .max(9999999.99, 'El precio supera el límite permitido.')
+  .nullable()
+  .optional();
+
+export const createProductSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'El nombre del producto debe tener al menos 2 caracteres.')
+    .max(160, 'El nombre no puede superar 160 caracteres.'),
+  description: z
+    .string()
+    .trim()
+    .max(1000, 'La descripción no puede superar 1000 caracteres.')
+    .nullable()
+    .optional(),
+  category: z
+    .string()
+    .trim()
+    .max(80, 'La categoría no puede superar 80 caracteres.')
+    .nullable()
+    .optional(),
+  codes: z
+    .array(productCodeInputSchema)
+    .min(1, 'Debes registrar al menos un código para el producto.'),
+  priceGTQ: priceFieldSchema,
+  priceHNL: priceFieldSchema,
+  priceNIO: priceFieldSchema,
+  priceUSD: priceFieldSchema,
+  initialStock: z
+    .number()
+    .int('El inventario inicial debe ser un número entero.')
+    .min(0, 'El inventario inicial no puede ser negativo.')
+    .default(0),
+  lowStockThreshold: z
+    .number()
+    .int('El umbral de stock bajo debe ser un número entero.')
+    .min(0, 'El umbral de stock bajo no puede ser negativo.')
+    .default(5),
+  images: z
+    .array(productImageInputSchema)
+    .max(10, 'Máximo 10 imágenes por producto.')
+    .optional(),
+});
+
+export const updateProductSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'El nombre del producto debe tener al menos 2 caracteres.')
+    .max(160, 'El nombre no puede superar 160 caracteres.')
+    .optional(),
+  description: z
+    .string()
+    .trim()
+    .max(1000, 'La descripción no puede superar 1000 caracteres.')
+    .nullable()
+    .optional(),
+  category: z
+    .string()
+    .trim()
+    .max(80, 'La categoría no puede superar 80 caracteres.')
+    .nullable()
+    .optional(),
+  codes: z
+    .array(productCodeInputSchema)
+    .min(1, 'El producto debe conservar al menos un código.')
+    .optional(),
+  priceGTQ: priceFieldSchema,
+  priceHNL: priceFieldSchema,
+  priceNIO: priceFieldSchema,
+  priceUSD: priceFieldSchema,
+  lowStockThreshold: z
+    .number()
+    .int('El umbral de stock bajo debe ser un número entero.')
+    .min(0, 'El umbral de stock bajo no puede ser negativo.')
+    .optional(),
+  images: z
+    .array(productImageInputSchema)
+    .max(10, 'Máximo 10 imágenes por producto.')
+    .optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const createStockMovementSchema = z
+  .object({
+    type: z.enum(['MANUAL_IN', 'MANUAL_OUT', 'MANUAL_ADJUST']),
+    quantity: z
+      .number()
+      .int('La cantidad debe ser un número entero.')
+      .min(0, 'La cantidad no puede ser negativa.'),
+    reason: z
+      .string()
+      .trim()
+      .min(3, 'Indica el motivo del movimiento (mínimo 3 caracteres).')
+      .max(300, 'El motivo no puede superar 300 caracteres.'),
+    reference: z
+      .string()
+      .trim()
+      .max(120, 'La referencia no puede superar 120 caracteres.')
+      .optional()
+      .or(z.literal('')),
+  })
+  .refine(
+    (data) => data.type === 'MANUAL_ADJUST' || data.quantity > 0,
+    {
+      message: 'Para ingresos o salidas, la cantidad debe ser mayor a cero.',
+      path: ['quantity'],
+    },
+  );
+
+export const uploadImageSchema = z.object({
+  fileName: z
+    .string()
+    .trim()
+    .min(1, 'El nombre del archivo es obligatorio.')
+    .max(160, 'El nombre del archivo es demasiado largo.'),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  dataBase64: z.string().min(16, 'Los datos de la imagen no son válidos.'),
+});
+
+export const createCustomerSchema = z.object({
+  companyName: z
+    .string()
+    .trim()
+    .min(2, 'El nombre de la empresa debe tener al menos 2 caracteres.')
+    .max(160, 'El nombre de la empresa no puede superar 160 caracteres.'),
+  managerName: z
+    .string()
+    .trim()
+    .min(2, 'El nombre del encargado debe tener al menos 2 caracteres.')
+    .max(120, 'El nombre del encargado no puede superar 120 caracteres.'),
+  phone: z
+    .string()
+    .trim()
+    .min(4, 'Ingresa un teléfono válido.')
+    .max(30, 'El teléfono no puede superar 30 caracteres.'),
+  email: emailSchema,
+  country: z.enum(COUNTRIES),
+  address: z
+    .string()
+    .trim()
+    .min(4, 'La dirección debe tener al menos 4 caracteres.')
+    .max(300, 'La dirección no puede superar 300 caracteres.'),
+  taxId: z
+    .string()
+    .trim()
+    .min(2, 'El identificador fiscal es obligatorio.')
+    .max(60, 'El identificador fiscal no puede superar 60 caracteres.'),
+  notes: z
+    .string()
+    .trim()
+    .max(1000, 'Las notas no pueden superar 1000 caracteres.')
+    .nullable()
+    .optional(),
+});
+
+export const updateCustomerSchema = createCustomerSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
+export const linkCustomerUserSchema = z.object({
+  userId: z.string().trim().min(1, 'Selecciona un usuario para vincular.'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
@@ -142,3 +339,10 @@ export type CompleteInvitationInput = z.infer<typeof completeInvitationSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type UpdateRolePermissionsInput = z.infer<typeof updateRolePermissionsSchema>;
+export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+export type CreateStockMovementInput = z.infer<typeof createStockMovementSchema>;
+export type UploadImageInput = z.infer<typeof uploadImageSchema>;
+export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
+export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
+export type LinkCustomerUserInput = z.infer<typeof linkCustomerUserSchema>;

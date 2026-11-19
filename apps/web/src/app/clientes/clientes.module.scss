@@ -1,0 +1,111 @@
+@use '../../styles/mixins.scss' as *;
+
+.page {
+  @include page-container;
+}
+
+.header {
+  @include page-header;
+}
+
+.primaryBtn {
+  @include button-primary;
+}
+
+.secondaryBtn {
+  @include button-secondary;
+}
+
+.dangerBtn {
+  @include button-danger;
+}
+
+.filtersCard {
+  @include card-surface;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.field {
+  @include input-group;
+}
+
+.checkboxRow {
+  grid-column: 1 / -1;
+}
+
+.checkLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--touch-min);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.badge {
+  @include badge-base;
+}
+
+.currencyBadge {
+  background-color: var(--brand-themed-dark);
+  color: var(--text-on-brand);
+}
+
+.inactiveBadge {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.actionsCell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actionBtn {
+  @include button-secondary;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+}
+
+.actionDangerBtn {
+  @include button-danger;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 520px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.currencyHint {
+  padding: 10px 12px;
+  background-color: var(--background-surface);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}

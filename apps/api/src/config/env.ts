@@ -49,6 +49,12 @@ export const env = {
   smtpUser: process.env.SMTP_USER || '',
   smtpPass: process.env.SMTP_PASS || '',
   resendApiKey: process.env.RESEND_API_KEY || '',
+  apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${Number(process.env.PORT) || 4000}`,
+  r2AccountId: process.env.R2_ACCOUNT_ID || '',
+  r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+  r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  r2BucketName: process.env.R2_BUCKET_NAME || 'arte-modelo-dubois-assets',
+  r2PublicUrl: process.env.R2_PUBLIC_URL || '',
 };
 
 export const REFRESH_COOKIE_NAME = 'amd_refresh_token';

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogIn, LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { BookOpen, LogIn, LogOut, Menu, Moon, Sun } from 'lucide-react';
 import { ROLE_LABELS } from '@arte-modelo/shared';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -83,10 +83,16 @@ export function Topbar({ onToggleSidebar, showMenuButton = true }: TopbarProps) 
             </button>
           </>
         ) : (
-          <Link href="/login" className={styles.iconBtn}>
-            <LogIn size={18} />
-            <span className={styles.btnLabel}>Ingresar</span>
-          </Link>
+          <>
+            <Link href="/catalogo" className={styles.iconBtn}>
+              <BookOpen size={18} />
+              <span className={styles.btnLabel}>Catálogo</span>
+            </Link>
+            <Link href="/login" className={styles.iconBtn}>
+              <LogIn size={18} />
+              <span className={styles.btnLabel}>Ingresar</span>
+            </Link>
+          </>
         )}
       </div>
     </header>

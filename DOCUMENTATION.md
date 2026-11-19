@@ -1,6 +1,6 @@
 # Documentación Técnica — Arte Modelo Dubois 2.0
 
-> **Fuente Única de Verdad** del Sistema de Facturación y Pedidos B2B de **Arte Modelo Dubois**. Actualizada al cierre de **Fase 0** y **Fase 1**.
+> **Fuente Única de Verdad** del Sistema de Facturación y Pedidos B2B de **Arte Modelo Dubois**. Actualizada al cierre de **Fase 2** y **Fase 3**.
 
 ---
 
@@ -66,18 +66,22 @@ Sistema Facturación Arte Modelo 2.0/
 
 ---
 
-## 3. Esquema de Base de Datos (Fase 1)
+## 3. Esquema de Base de Datos (Fases 1–3)
 
 Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (PostgreSQL) y `apps/api/prisma/schema.sqlite.prisma` (SQLite):
 
-- **`User`**: `id`, `email` (unique), `passwordHash`, `fullName`, `phone`, `role` (`ADMIN` | `EMPLOYEE` | `CUSTOMER`), `isActive`, `isVerified`, `verificationTokenHash`, `verificationTokenExpiresAt`, `invitationTokenHash`, `invitationExpiresAt`, `invitedById`, `createdAt`, `updatedAt`.
+- **`User`**: `id`, `email` (unique), `passwordHash`, `fullName`, `phone`, `role` (`ADMIN` | `EMPLOYEE` | `CUSTOMER`), `customerId` (opcional hacia `Customer`), `isActive`, `isVerified`, tokens de verificación/invitación, `createdAt`, `updatedAt`.
 - **`RefreshToken`**: `id`, `tokenHash` (SHA-256 unique), `userId`, `expiresAt`, `revokedAt`, `createdAt`.
-- **`Permission`**: `id`, `code` (unique), `module`, `name`, `description`.
-- **`RolePermission`**: `id`, `role`, `permissionId`, `granted`, `@@unique([role, permissionId])`.
+- **`Permission` & `RolePermission`**: matriz RBAC granular por módulo para los 3 roles fijos.
+- **`Product`**: `id`, `name`, `description`, `category`, `priceGTQ`, `priceHNL`, `priceNIO`, `priceUSD`, `stock`, `lowStockThreshold`, `isActive`, `deletedAt`, `createdAt`, `updatedAt`.
+- **`ProductCode`**: `id`, `productId`, `code` (unique), `label`, `isPrimary`.
+- **`ProductImage`**: `id`, `productId`, `url`, `altText`, `sortOrder`.
+- **`StockMovement`**: `id`, `productId`, `type` (`INITIAL` | `MANUAL_IN` | `MANUAL_OUT` | `MANUAL_ADJUST` | `ORDER_PACK` | `ORDER_REVERT` | `CONSIGNMENT_RETURN`), `quantityDelta`, `previousStock`, `newStock`, `reason`, `reference`, `performedById`, `createdAt`.
+- **`Customer`**: `id`, `companyName`, `managerName`, `phone`, `email` (unique), `country` (`GT` | `HN` | `NI` | `SV` | `OTHER`), `currency` (`GTQ` | `HNL` | `NIO` | `USD`), `address`, `taxId`, `notes`, `isActive`, `deletedAt`, `createdAt`, `updatedAt`.
 
 ---
 
-## 4. Endpoints REST Implementados (Fase 1)
+## 4. Endpoints REST Implementados (Fases 1–3)
 
 | Método | Ruta | Acceso / Permiso | Descripción |
 | :--- | :--- | :--- | :--- |
@@ -99,12 +103,32 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 | `DELETE` | `/api/users/:id` | `users.delete` | Desactivación lógica segura y revocación inmediata de refresh tokens. |
 | `GET` | `/api/permissions` | `permissions.manage` | Devuelve la matriz completa de permisos por módulo para los 3 roles fijos. |
 | `PUT` | `/api/permissions/role/:role` | `permissions.manage` | Actualiza permisos de un rol fijo (protegiendo permisos críticos de `ADMIN`). |
+| `GET` | `/api/catalog` | Público | Catálogo público con búsqueda por código y categoría; **excluye precios y stock**. |
+| `GET` | `/api/catalog/:id` | Público | Detalle público de producto sin precios ni stock. |
+| `GET` | `/api/products` | `products.read` | Lista productos con búsqueda unificada por cualquier código (solo incluye precios/stock si tiene `products.read_prices`). |
+| `GET` | `/api/products/:id` | `products.read` | Detalle interno de producto respetando `products.read_prices`. |
+| `POST` | `/api/products` | `products.manage` | Crea producto multimoneda, códigos múltiples, imágenes e inventario inicial (`StockMovement`). |
+| `PATCH` | `/api/products/:id` | `products.manage` | Actualiza datos, precios, códigos múltiples e imágenes sin mutar stock directamente. |
+| `DELETE` | `/api/products/:id` | `products.manage` | Archiva lógicamente el producto (`isActive = false`). |
+| `POST` | `/api/products/:id/restore` | `products.manage` | Restaura producto archivado al catálogo activo. |
+| `GET` | `/api/products/:id/stock-movements` | `products.read_prices` | Historial cronológico de Kardex del producto. |
+| `POST` | `/api/products/:id/stock-movements` | `products.manage` | Registra entrada, salida o ajuste exacto transaccional de stock. |
+| `POST` | `/api/uploads/product-image` | `products.manage` | Sube fotografía JPG/PNG/WebP a Cloudflare R2 o fallback local `/api/uploads/products/`. |
+| `GET` | `/api/uploads/products/:fileName` | Público (imagen) | Sirve archivos locales en desarrollo cuando R2 no está configurado. |
+| `GET` | `/api/customers` | `customers.read` | Lista clientes regionales con filtro por país y búsqueda general. |
+| `GET` | `/api/customers/unlinked-users` | `customers.manage` | Usuarios `CUSTOMER` activos disponibles para vincular. |
+| `GET` | `/api/customers/:id` | `customers.read` | Ficha completa del cliente y usuarios vinculados. |
+| `POST` | `/api/customers` | `customers.manage` | Crea cliente regional asignando moneda y etiqueta fiscal automática. |
+| `PATCH` | `/api/customers/:id` | `customers.manage` | Actualiza datos fiscales/regionales y estado activo. |
+| `DELETE` | `/api/customers/:id` | `customers.manage` | Desactiva cliente lógicamente (bloquea si aún tiene cuentas vinculadas). |
+| `POST` | `/api/customers/:id/users` | `customers.manage` | Vincula cuenta `CUSTOMER` al cliente. |
+| `DELETE` | `/api/customers/:id/users/:userId` | `customers.manage` | Desvincula cuenta de usuario del cliente. |
 
 ---
 
 ## 5. Sistema de Diseño Visual y Frontend (`apps/web`)
 
-- **Estilo Material Design Recto:** `border-radius: 0 !important` global, colores planos y sombras suaves (`--shadow-xs` a `--shadow-lg`, `--shadow-topbar`, `--shadow-sidebar`).
+- **Estilo Material Design Recto:** `border-radius: 0 !important` global, colores planos, **cards y Sidebar sin bordes exteriores** (elevación tipo papel únicamente por sombra) y **botones sin borde salvo cuando coinciden con el fondo del elemento padre**.
 - **Paleta heredada de v1.0 y auditada WCAG AA (`src/styles/theme.scss`):**
   - *Tema Claro:* Fondos `#ffe7c8` / `#f5d5b7` / `#fff1de` / `#fdfaf6`; marca azul marino `#06005c` / `#08042b` / `#110b51`.
   - *Tema Oscuro (`html[data-theme="dark"]`):* Fondos carbón `#242424` / `#1a1a1a` / `#292929` / `#333333`; marca vino/borgoña `#250000` / `#531212` / `#762323`; acentos dorado `#e0c942` y rojo `#b61212`.
@@ -112,13 +136,13 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 - **Sin `alert()` / `confirm()`:** Todo aviso o confirmación usa `ToastContainer`, `Modal` o `ConfirmModal`.
 
 ### Páginas Implementadas
-- `/login` — Inicio de sesión.
-- `/registro` — Registro público de clientes con enlace local de verificación en modo `mock`.
-- `/verificar-cuenta` — Validación automática del token `?token=...`.
-- `/registro-invitado` — Activación de cuenta invitada con definición de contraseña.
-- `/` — Dashboard inicial protegido por sesión y rol.
-- `/usuarios` — Gestión de usuarios (requiere `users.read`).
-- `/configuracion` — Mi Perfil y Matriz de Permisos por Rol (pestaña permisos requiere `permissions.manage`).
+- `/login`, `/registro`, `/verificar-cuenta`, `/registro-invitado` — Flujos de acceso y registro público.
+- `/` — Dashboard inicial con accesos rápidos por permiso.
+- `/catalogo` — Catálogo público (sin precios/stock) y consulta interna para staff con galería modal.
+- `/productos` — Gestión de catálogo multimoneda, códigos múltiples, subida de fotos y Kardex (`products.read_prices`).
+- `/clientes` y `/clientes/[id]` — Cartera regional con etiqueta fiscal dinámica y vinculación de usuarios (`customers.read`).
+- `/usuarios` — Gestión de usuarios e invitaciones (`users.read`).
+- `/configuracion` — Mi Perfil y Matriz de Permisos por Rol (`permissions.manage`).
 
 ---
 

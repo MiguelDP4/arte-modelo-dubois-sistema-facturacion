@@ -8,8 +8,8 @@
 | :--- | :--- | :--- |
 | **Fase 0** | Fundación, Monorepo, Entornos y Sistema de Diseño | `Hecho` |
 | **Fase 1** | Autenticación, Roles Fijos y RBAC Real | `Hecho` |
-| **Fase 2** | Catálogo Multimoneda, Códigos Múltiples y Kardex | `Pendiente` |
-| **Fase 3** | Cartera Regional de Clientes | `Pendiente` |
+| **Fase 2** | Catálogo Multimoneda, Códigos Múltiples y Kardex | `En Revisión` |
+| **Fase 3** | Cartera Regional de Clientes | `En Revisión` |
 | **Fase 4** | Motor de Pedidos, Precios, Empaque y Despachos | `Pendiente` |
 | **Fase 5** | Pagos, Consignación Automatizada, Correos y Excel (`.xlsx`) | `Pendiente` |
 | **Fase 6** | Dashboard, E2E Completo, Demo Staging y Producción | `Pendiente` |
@@ -37,15 +37,15 @@
 ### Fase 2 — Catálogo Multimoneda, Códigos Múltiples y Kardex
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F2-01` | Modelos `Product`, `ProductCode`, `ProductImage` y `StockMovement` + API CRUD con búsqueda unificada por código | `feature/F2-01-products-api` | `Por Hacer` | Múltiples códigos por producto, soft-delete, kardex automático e integración DB pasando. |
-| `F2-02` | Endpoint `GET /api/catalog` público (sin precios ni stock) vs `GET /api/products` autenticado con permiso de precios/stock | `feature/F2-02-catalog-privacy` | `Por Hacer` | Garantía por tests de que usuarios públicos y `CUSTOMER` no reciben precios ni stock en catálogo. |
-| `F2-03` | UI de `/catalogo` y `/productos` Mobile-First (cards en móvil, compresión e subida Cloudinary, galería modal, kardex de stock) | `feature/F2-03-products-ui` | `Por Hacer` | Alta/edición/borrado de productos, múltiples códigos y vistas probadas con Vitest + Playwright. |
+| `F2-01` | Modelos `Product`, `ProductCode`, `ProductImage` y `StockMovement` + API CRUD con búsqueda unificada por código | `feature/F2-01-products-api` | `En Revisión` | Múltiples códigos por producto, soft-delete, kardex automático e integración DB pasando. |
+| `F2-02` | Endpoint `GET /api/catalog` público (sin precios ni stock) vs `GET /api/products` autenticado con permiso de precios/stock | `feature/F2-02-catalog-privacy` | `En Revisión` | Garantía por tests de que usuarios públicos y `CUSTOMER` no reciben precios ni stock en catálogo. |
+| `F2-03` | UI de `/catalogo` y `/productos` Mobile-First (cards en móvil, compresión e subida Cloudinary, galería modal, kardex de stock) | `feature/F2-03-products-ui` | `En Revisión` | Alta/edición/borrado de productos, múltiples códigos y vistas probadas con Vitest + Playwright. |
 
 ### Fase 3 — Cartera Regional de Clientes
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F3-01` | Modelo `Customer` + API CRUD 100% protegida por auth/permisos + vinculación/desvinculación de cuentas `CUSTOMER` | `feature/F3-01-customers-api` | `Por Hacer` | Filtros por país/nombre/NIT, protección contra borrado con pedidos, tests unitarios e integración. |
-| `F3-02` | UI de `/clientes` y `/clientes/[id]` (etiqueta fiscal dinámica por país, lista de pedidos y usuarios vinculados) | `feature/F3-02-customers-ui` | `Por Hacer` | Responsive cards en móvil, tests unitarios + Playwright pasando. |
+| `F3-01` | Modelo `Customer` + API CRUD 100% protegida por auth/permisos + vinculación/desvinculación de cuentas `CUSTOMER` | `feature/F3-01-customers-api` | `En Revisión` | Filtros por país/nombre/NIT, protección contra borrado con pedidos, tests unitarios e integración. |
+| `F3-02` | UI de `/clientes` y `/clientes/[id]` (etiqueta fiscal dinámica por país, lista de pedidos y usuarios vinculados) | `feature/F3-02-customers-ui` | `En Revisión` | Responsive cards en móvil, tests unitarios + Playwright pasando. |
 
 ### Fase 4 — Motor de Pedidos, Precios, Empaque y Despachos
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |

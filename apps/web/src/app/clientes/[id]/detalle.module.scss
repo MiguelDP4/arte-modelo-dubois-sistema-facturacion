@@ -1,0 +1,158 @@
+@use '../../../styles/mixins.scss' as *;
+
+.page {
+  @include page-container;
+}
+
+.header {
+  @include page-header;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryBtn {
+  @include button-primary;
+}
+
+.secondaryBtn {
+  @include button-secondary;
+}
+
+.dangerBtn {
+  @include button-danger;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+}
+
+.fullWidthCard {
+  grid-column: 1 / -1;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 520px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  span {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  strong {
+    font-size: 0.96rem;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+}
+
+.linkForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background-color: var(--background-surface);
+
+  @media (min-width: 520px) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.field {
+  @include input-group;
+  flex: 1;
+}
+
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.userRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--background-surface);
+
+  @media (min-width: 520px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.userMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 520px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}

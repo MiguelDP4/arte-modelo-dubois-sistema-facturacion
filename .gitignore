@@ -21,11 +21,12 @@ test-results/
 .env.test.local
 .env.production.local
 
-# Local SQLite databases (isolated dev & test)
+# Local SQLite databases & uploaded test/dev assets
 apps/api/prisma/dev.db
 apps/api/prisma/dev.db-journal
 apps/api/prisma/test.db
 apps/api/prisma/test.db-journal
+apps/api/uploads/
 *.db
 *.db-journal
 
