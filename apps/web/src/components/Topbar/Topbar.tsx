@@ -43,7 +43,7 @@ export function Topbar({ onToggleSidebar, showMenuButton = true }: TopbarProps) 
 
         <Link href="/" className={styles.brand}>
           <img
-            src="/logo-arte-modelo-navbar.png"
+            src="/logo-arte-modelo.png"
             alt="Escudo Arte Modelo Dubois"
             className={styles.logo}
             width={40}

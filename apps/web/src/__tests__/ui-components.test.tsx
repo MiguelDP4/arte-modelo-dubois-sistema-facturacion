@@ -161,7 +161,7 @@ describe('Design system & shell components', () => {
     );
 
     const logo = screen.getByAltText('Escudo Arte Modelo Dubois');
-    expect(logo).toHaveAttribute('src', '/logo-arte-modelo-navbar.png');
+    expect(logo).toHaveAttribute('src', '/logo-arte-modelo.png');
 
     fireEvent.click(screen.getByLabelText('Abrir o contraer menú lateral'));
     expect(onToggle).toHaveBeenCalledTimes(1);
