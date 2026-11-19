@@ -20,7 +20,7 @@
   &.active {
     background-color: var(--brand-themed-dark);
     color: var(--text-on-brand);
-    border-color: var(--brand-themed-darkest);
+    border-color: transparent;
   }
 }
 
@@ -63,9 +63,9 @@
 }
 
 .moduleGroup {
-  border: 1px solid var(--border-secondary);
+  border: none;
   background-color: var(--background-table);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
 }
 
 .moduleHeader {
@@ -111,23 +111,24 @@
   min-width: 84px;
   min-height: var(--touch-min);
   padding: 6px 12px;
-  border: 1px solid var(--border-secondary);
+  border: none;
   border-radius: 0;
   font-weight: 700;
   font-size: 0.82rem;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-button);
 
   &.on {
     background-color: var(--color-success-bg);
     color: var(--color-success);
-    border-color: var(--color-success-border);
+    border: none;
   }
 
   &.off {
     background-color: var(--background-elevated);
     color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
   }
 
   &:disabled {

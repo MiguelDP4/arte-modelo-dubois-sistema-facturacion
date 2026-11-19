@@ -17,7 +17,7 @@
   width: 100%;
   max-width: 440px;
   margin-top: 20px;
-  border: 2px solid var(--brand-themed-darkest);
+  border: none;
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -35,10 +35,11 @@
     width: 64px;
     height: 64px;
     object-fit: contain;
-    background-color: #ffffff;
-    padding: 4px;
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-xs);
+    background-color: transparent;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    filter: drop-shadow(0px 0 0 #ffffff) drop-shadow(0px 0 0 #ffffff) drop-shadow(0 0px 0 #ffffff) drop-shadow(0 0px 0 #ffffff) drop-shadow(1.5px 1.5px 0 #ffffff) drop-shadow(-0.5px -0.5px 0 #ffffff) drop-shadow(0.5px -0.5px 0 #ffffff) drop-shadow(-0.5px 0.5px 0 #ffffff);
   }
 
   h1 {

@@ -15,7 +15,7 @@
 
 .card {
   background-color: var(--background-table);
-  border: 1px solid var(--border-secondary);
+  border: none;
   border-radius: 0;
   box-shadow: var(--shadow-sm);
   padding: 14px;
@@ -57,7 +57,7 @@
   width: 100%;
   border-collapse: collapse;
   background-color: var(--background-table);
-  border: 1px solid var(--border-secondary);
+  border: none;
   box-shadow: var(--shadow-sm);
 
   @media (min-width: 768px) {
@@ -96,8 +96,8 @@
 
 .emptyState {
   background-color: var(--background-elevated);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-xs);
+  border: none;
+  box-shadow: var(--shadow-sm);
   padding: 28px 16px;
   text-align: center;
   color: var(--text-secondary);

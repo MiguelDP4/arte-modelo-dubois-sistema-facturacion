@@ -17,7 +17,7 @@
   z-index: 900;
   width: var(--sidebar-width);
   background-color: var(--background-surface);
-  border-right: 2px solid var(--brand-themed-darkest);
+  border: none;
   box-shadow: var(--shadow-sidebar);
   display: flex;
   flex-direction: column;
@@ -55,20 +55,18 @@
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 700;
-  border: 1px solid transparent;
+  border: none;
   background-color: transparent;
   transition: background-color 0.15s ease, color 0.15s ease;
 
   &:hover {
     background-color: var(--background-page-secondary);
-    border-color: var(--border-secondary);
   }
 
   &.active {
     background-color: var(--brand-themed-dark);
     color: var(--text-on-brand);
-    border-color: var(--brand-themed-darkest);
-    box-shadow: var(--shadow-xs);
+    box-shadow: var(--shadow-button);
   }
 }
 

@@ -16,11 +16,12 @@
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
-  box-shadow: var(--shadow-xs);
+  border: none;
+  box-shadow: var(--shadow-button);
   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover:not(:disabled) {
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-button-hover);
   }
 
   &:focus-visible {
@@ -39,7 +40,6 @@
   @include button-base;
   background-color: var(--brand-themed-dark);
   color: var(--text-on-brand);
-  border: 1px solid var(--brand-themed-darkest);
 
   &:hover:not(:disabled) {
     background-color: var(--brand-themed-base);
@@ -55,6 +55,7 @@
   &:hover:not(:disabled) {
     background-color: var(--brand-themed-dark);
     color: var(--text-on-brand);
+    border-color: transparent;
   }
 }
 
@@ -62,7 +63,6 @@
   @include button-base;
   background-color: var(--color-danger);
   color: #ffffff;
-  border: 1px solid var(--color-danger-border);
 
   &:hover:not(:disabled) {
     filter: brightness(0.92);
@@ -71,7 +71,7 @@
 
 @mixin card-surface {
   background-color: var(--background-elevated);
-  border: 1px solid var(--border-subtle);
+  border: none;
   border-radius: 0;
   box-shadow: var(--shadow-sm);
   padding: 16px;
