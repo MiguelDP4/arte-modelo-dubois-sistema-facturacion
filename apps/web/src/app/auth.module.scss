@@ -1,0 +1,116 @@
+@use '../styles/mixins.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding-top: var(--topbar-height);
+  background-color: var(--background-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 24px;
+}
+
+.card {
+  @include card-surface;
+  width: 100%;
+  max-width: 440px;
+  margin-top: 20px;
+  border: 2px solid var(--brand-themed-darkest);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brandHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+
+  img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    background-color: #ffffff;
+    padding: 4px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-xs);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  @include input-group;
+}
+
+.submitBtn {
+  @include button-primary;
+  width: 100%;
+}
+
+.secondaryBtn {
+  @include button-secondary;
+  width: 100%;
+}
+
+.alertError {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-border);
+  border-left-width: 4px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.alertSuccess {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+  border-left-width: 4px;
+  padding: 12px;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devLink {
+  word-break: break-all;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+
+  a {
+    font-weight: 700;
+  }
+}

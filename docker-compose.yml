@@ -1,0 +1,28 @@
+# Opcional: PostgreSQL local si se desea replicar el motor de Neon localmente.
+# Por defecto en desarrollo y pruebas locales se utiliza SQLite aislado (dev.db / test.db),
+# alineado con Kroma Lab Sales Studio para trabajar con cero fricción en Windows.
+services:
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: arte_modelo_pg_dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: arte_modelo_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - arte_modelo_pg_dev_data:/var/lib/postgresql/data
+
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: arte_modelo_pg_test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: arte_modelo_test
+    ports:
+      - "5433:5432"
+
+volumes:
+  arte_modelo_pg_dev_data:

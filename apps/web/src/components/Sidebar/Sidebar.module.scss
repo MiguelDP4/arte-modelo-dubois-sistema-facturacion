@@ -1,0 +1,105 @@
+.backdrop {
+  position: fixed;
+  inset: var(--topbar-height) 0 0 0;
+  z-index: 890;
+  background-color: var(--background-backdrop);
+
+  @media (min-width: 1024px) {
+    display: none;
+  }
+}
+
+.sidebar {
+  position: fixed;
+  top: var(--topbar-height);
+  bottom: 0;
+  left: 0;
+  z-index: 900;
+  width: var(--sidebar-width);
+  background-color: var(--background-surface);
+  border-right: 2px solid var(--brand-themed-darkest);
+  box-shadow: var(--shadow-sidebar);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease, width 0.2s ease;
+
+  &.mobileOpen {
+    transform: translateX(0);
+  }
+
+  @media (min-width: 1024px) {
+    transform: translateX(0);
+
+    &.collapsed {
+      width: var(--sidebar-collapsed-width);
+    }
+  }
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 6px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--touch-min);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  background-color: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: var(--background-page-secondary);
+    border-color: var(--border-secondary);
+  }
+
+  &.active {
+    background-color: var(--brand-themed-dark);
+    color: var(--text-on-brand);
+    border-color: var(--brand-themed-darkest);
+    box-shadow: var(--shadow-xs);
+  }
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsed .label {
+  @media (min-width: 1024px) {
+    display: none;
+  }
+}
+
+.footer {
+  padding: 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.collapsed .footer {
+  @media (min-width: 1024px) {
+    display: none;
+  }
+}

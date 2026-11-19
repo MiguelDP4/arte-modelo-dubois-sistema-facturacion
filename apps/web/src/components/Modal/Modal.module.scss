@@ -1,0 +1,101 @@
+@use '../../styles/mixins.scss' as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background-color: var(--background-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background-color: var(--background-modal);
+  color: var(--text-primary);
+  border: 2px solid var(--brand-themed-darkest);
+  border-radius: 0;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: var(--brand-themed-darkest);
+  color: var(--text-on-brand);
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+}
+
+.closeBtn {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-on-brand);
+  border: 1px solid transparent;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--text-on-brand);
+  }
+}
+
+.body {
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
+}
+
+.footer {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--background-surface);
+
+  @media (min-width: 480px) {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+.confirmMessage {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.btnPrimary {
+  @include button-primary;
+}
+
+.btnSecondary {
+  @include button-secondary;
+}
+
+.btnDanger {
+  @include button-danger;
+}

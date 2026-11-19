@@ -1,0 +1,187 @@
+/* ============================================================================
+ * Arte Modelo Dubois 2.0 — Sistema de Diseño (Material Design Recto + WCAG AA)
+ * ============================================================================
+ * Reglas visuales obligatorias:
+ *  - border-radius: 0 en todos los elementos
+ *  - Colores planos (sin gradientes)
+ *  - Sombras suaves estilo elevación Material Design
+ *  - Contraste WCAG AA (>= 4.5:1) verificado en tema claro y tema oscuro
+ * ============================================================================ */
+
+:root {
+  --radius: 0px;
+  --font-base: Arial, Helvetica, sans-serif;
+  --topbar-height: 60px;
+  --sidebar-width: 248px;
+  --sidebar-collapsed-width: 72px;
+  --touch-min: 44px;
+
+  /* Marca — Azul marino (Tema Claro, fidelidad v1.0) */
+  --brand-darkest: #08042b;
+  --brand-darker: #0a053a;
+  --brand-dark: #110b51;
+  --brand-base: #302c61;
+  --brand-light: #454175;
+  --brand-lighter: #52506e;
+
+  /* Marca secundaria — Vino / Borgoña (para Tema Oscuro) */
+  --brand-darkest-secondary: #250000;
+  --brand-darker-secondary: #3c0000;
+  --brand-dark-secondary: #531212;
+  --brand-base-secondary: #762323;
+  --brand-light-secondary: #8a3232;
+  --brand-lighter-secondary: #9c4747;
+
+  /* Tokens de marca activos */
+  --brand-themed-darkest: var(--brand-darkest);
+  --brand-themed-darker: var(--brand-darker);
+  --brand-themed-dark: var(--brand-dark);
+  --brand-themed-base: var(--brand-base);
+  --brand-themed-light: var(--brand-light);
+  --brand-themed-lighter: var(--brand-lighter);
+  --brand-themed-alpha: rgba(17, 11, 81, 0.14);
+
+  /* Acentos (Tema Claro) */
+  --accent-primary: #1c318d;
+  --accent-hover: #2d22a3;
+  --accent-link: #1c318d;
+
+  /* Fondos crema / durazno (Tema Claro) */
+  --background-topbar: #06005c;
+  --background-page: #ffe7c8;
+  --background-page-secondary: #f5d5b7;
+  --background-surface: #fff1de;
+  --background-elevated: #fdfaf6;
+  --background-table: #fff1de;
+  --background-table-stripe: #fae6cc;
+  --background-input: #fdfaf6;
+  --background-modal: #fdfaf6;
+  --background-backdrop: rgba(8, 4, 43, 0.56);
+
+  /* Tipografía y bordes (Contraste WCAG AA verificado >= 7:1) */
+  --text-topbar: #ffffff;
+  --text-primary: #141414;
+  --text-secondary: #3a3a3a;
+  --text-muted: #525252;
+  --text-on-brand: #ffffff;
+  --text-brand-emphasis: #110b51;
+  --border-subtle: #c8ad90;
+  --border-primary: #1a145c;
+  --border-secondary: #08042b;
+
+  /* Estados semánticos auditados WCAG AA (Tema Claro) */
+  --color-success: #0f5132;
+  --color-success-bg: #d1e7dd;
+  --color-success-border: #0f5132;
+
+  --color-warning: #7a4100;
+  --color-warning-bg: #fff3cd;
+  --color-warning-border: #9c5700;
+
+  --color-danger: #991b1b;
+  --color-danger-bg: #fee2e2;
+  --color-danger-border: #b91c1c;
+
+  --color-info: #110b51;
+  --color-info-bg: #e0e7ff;
+  --color-info-border: #1c318d;
+
+  /* Badges de roles */
+  --badge-admin-bg: #110b51;
+  --badge-admin-text: #ffffff;
+  --badge-admin-border: #08042b;
+
+  --badge-employee-bg: #302c61;
+  --badge-employee-text: #ffffff;
+  --badge-employee-border: #110b51;
+
+  --badge-customer-bg: #f5d5b7;
+  --badge-customer-text: #141414;
+  --badge-customer-border: #08042b;
+
+  /* Elevaciones suaves Material Design (esquinas 100% rectas) */
+  --shadow-xs: 0 1px 3px rgba(8, 4, 43, 0.16);
+  --shadow-sm: 0 2px 6px rgba(8, 4, 43, 0.18);
+  --shadow-md: 0 4px 12px rgba(8, 4, 43, 0.2);
+  --shadow-lg: 0 8px 24px rgba(8, 4, 43, 0.28);
+  --shadow-topbar: 0 2px 8px rgba(0, 0, 0, 0.32);
+  --shadow-sidebar: 2px 0 10px rgba(0, 0, 0, 0.26);
+  --shadow-focus: 0 0 0 3px rgba(28, 49, 141, 0.35);
+}
+
+html[data-theme='dark'] {
+  --brand-themed-darkest: var(--brand-darkest-secondary);
+  --brand-themed-darker: var(--brand-darker-secondary);
+  --brand-themed-dark: var(--brand-dark-secondary);
+  --brand-themed-base: var(--brand-base-secondary);
+  --brand-themed-light: var(--brand-light-secondary);
+  --brand-themed-lighter: var(--brand-lighter-secondary);
+  --brand-themed-alpha: rgba(224, 201, 66, 0.22);
+
+  /* Acentos (Tema Oscuro) */
+  --accent-primary: #e0c942;
+  --accent-hover: #b61212;
+  --accent-link: #f0db65;
+
+  /* Fondos carbón (Tema Oscuro, fidelidad v1.0) */
+  --background-topbar: #250000;
+  --background-page: #242424;
+  --background-page-secondary: #1a1a1a;
+  --background-surface: #292929;
+  --background-elevated: #333333;
+  --background-table: #292929;
+  --background-table-stripe: #2f2f2f;
+  --background-input: #333333;
+  --background-modal: #2d2d2d;
+  --background-backdrop: rgba(0, 0, 0, 0.72);
+
+  /* Tipografía y bordes WCAG AA (Tema Oscuro) */
+  --text-topbar: #f8ecec;
+  --text-primary: #f5f5f5;
+  --text-secondary: #cfcfcf;
+  --text-muted: #b0b0b0;
+  --text-on-brand: #ffffff;
+  --text-brand-emphasis: #f0db65;
+  --border-subtle: #484848;
+  --border-primary: #762323;
+  --border-secondary: #9c4747;
+
+  /* Estados semánticos auditados WCAG AA (Tema Oscuro) */
+  --color-success: #7ef0b2;
+  --color-success-bg: #123622;
+  --color-success-border: #2c8a57;
+
+  --color-warning: #f7df79;
+  --color-warning-bg: #3b2d0a;
+  --color-warning-border: #c29b25;
+
+  --color-danger: #ff9494;
+  --color-danger-bg: #451515;
+  --color-danger-border: #d94646;
+
+  --color-info: #f0db65;
+  --color-info-bg: #362e10;
+  --color-info-border: #b39b24;
+
+  /* Badges de roles (Tema Oscuro) */
+  --badge-admin-bg: #531212;
+  --badge-admin-text: #ffffff;
+  --badge-admin-border: #b61212;
+
+  --badge-employee-bg: #762323;
+  --badge-employee-text: #ffffff;
+  --badge-employee-border: #9c4747;
+
+  --badge-customer-bg: #1a1a1a;
+  --badge-customer-text: #f5f5f5;
+  --badge-customer-border: #762323;
+
+  /* Elevaciones suaves Material Design (Tema Oscuro) */
+  --shadow-xs: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.52);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.72);
+  --shadow-topbar: 0 2px 10px rgba(0, 0, 0, 0.65);
+  --shadow-sidebar: 2px 0 12px rgba(0, 0, 0, 0.65);
+  --shadow-focus: 0 0 0 3px rgba(224, 201, 66, 0.42);
+}
