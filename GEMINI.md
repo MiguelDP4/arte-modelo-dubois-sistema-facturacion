@@ -18,7 +18,7 @@
       - Tests unitarios con Vitest (`npm test` y `npm run test:coverage` con cobertura **> 85%** en `statements` y `lines`).
       - Tests de integración de API.
       - Tests E2E con Playwright para los flujos afectados.
-   5. El agente actualiza `BACKLOG.md` (estado `En Revisión` / `Hecho`) y, al cerrar un hito, actualiza `DOCUMENTATION.md` y `CHANGELOG.md`.
+   5. El agente marca obligatoriamente las tareas completadas como **`Hecho`** en `BACKLOG.md` y, al cerrar un hito, actualiza `DOCUMENTATION.md` y `CHANGELOG.md`.
    6. El agente levanta los servidores locales (`apps/api` y `apps/web`) y entrega a Miguel una **guía puntual de prueba**: URL exacta, credenciales/rol a usar y pasos concretos a verificar.
    7. Una vez Miguel aprueba la prueba manual, se realiza el merge a `development`.
 
@@ -72,6 +72,10 @@ Sistema Facturación Arte Modelo 2.0/
 ## 4. Reglas de Negocio (Arte Modelo Dubois 2.0)
 
 ### 4.1 Catálogo Multimoneda y Múltiples Códigos
+- **Sin categorías de productos:** Los productos del catálogo no manejan campo de categoría ni filtros por categoría; la organización y búsqueda se basan en nombre, descripción y sus códigos asociados.
+- **Paginación a nivel de API y debounce obligatorio (Regla Permanente):**
+  - **Todos** los catálogos y endpoints que devuelven listas (`/api/catalog`, `/api/products`, `/api/products/:id/stock-movements`, `/api/customers`, `/api/customers/unlinked-users`, `/api/users`, `/api/permissions`, `/api/orders` y futuros módulos) deben implementar paginación (`page`, `pageSize` seleccionable entre `10`, `20`, `50`, `100` y `0` = `Todos` para devolver la lista completa). Si `pageSize === 0`, se devuelven todos los resultados sin recorte (`totalPages = 1`); de lo contrario se usa el tamaño indicado.
+  - Todo input de búsqueda en el frontend debe aplicar un **debounce estricto de `1000 ms` (1 segundo)** (`useDebouncedValue`) antes de disparar solicitudes al backend, evitando sobrecargar el servidor con llamadas por cada pulsación de tecla.
 - **Monedas soportadas por país del cliente:**
   - Guatemala: `GTQ` (`Q`)
   - Honduras: `HNL` (`L`)

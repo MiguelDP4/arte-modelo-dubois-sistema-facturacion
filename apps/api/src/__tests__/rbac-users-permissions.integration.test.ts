@@ -75,12 +75,21 @@ describe('RBAC, Users and Permissions API integration', () => {
       ).status,
     ).toBe(403);
 
-    // Admin reads permission matrix
+    // Admin reads permission matrix (supports pageSize=0 default and explicit pagination)
     const matrix = await request(app)
       .get('/api/permissions')
       .set('Authorization', `Bearer ${admin.token}`);
     expect(matrix.status).toBe(200);
     expect(matrix.body.permissions.length).toBeGreaterThan(10);
+    expect(matrix.body.pagination.pageSize).toBe(0);
+
+    const matrixPaged = await request(app)
+      .get('/api/permissions?page=1&pageSize=5')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(matrixPaged.status).toBe(200);
+    expect(matrixPaged.body.permissions).toHaveLength(5);
+    expect(matrixPaged.body.pagination.pageSize).toBe(5);
+    expect(matrixPaged.body.pagination.hasNext).toBe(true);
 
     // Admin cannot revoke locked ADMIN permissions
     const lockAttempt = await request(app)
@@ -110,10 +119,33 @@ describe('RBAC, Users and Permissions API integration', () => {
     expect(grantRes.status).toBe(200);
 
     const empList = await request(app)
-      .get('/api/users')
+      .get('/api/users?page=1&pageSize=2')
       .set('Authorization', `Bearer ${employee.token}`);
     expect(empList.status).toBe(200);
-    expect(empList.body.users).toHaveLength(3);
+    expect(empList.body.users).toHaveLength(2);
+    expect(empList.body.pagination).toEqual({
+      page: 1,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    const empPage2 = await request(app)
+      .get('/api/users?page=2&pageSize=2')
+      .set('Authorization', `Bearer ${employee.token}`);
+    expect(empPage2.status).toBe(200);
+    expect(empPage2.body.users).toHaveLength(1);
+    expect(empPage2.body.pagination.hasPrev).toBe(true);
+    expect(empPage2.body.pagination.hasNext).toBe(false);
+
+    const empAll = await request(app)
+      .get('/api/users?pageSize=0')
+      .set('Authorization', `Bearer ${employee.token}`);
+    expect(empAll.status).toBe(200);
+    expect(empAll.body.users).toHaveLength(3);
+    expect(empAll.body.pagination.pageSize).toBe(0);
 
     // Admin revokes users.read from EMPLOYEE -> blocked again
     await request(app)

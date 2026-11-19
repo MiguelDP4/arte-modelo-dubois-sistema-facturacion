@@ -3,7 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Settings, Users } from 'lucide-react';
+import {
+  BookOpen,
+  Boxes,
+  Building2,
+  LayoutDashboard,
+  Settings,
+  Users,
+} from 'lucide-react';
 import type { PermissionCode } from '@arte-modelo/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './Sidebar.module.scss';
@@ -20,6 +27,23 @@ const NAV_ITEMS: NavItem[] = [
     href: '/',
     label: 'Inicio',
     icon: <LayoutDashboard size={20} />,
+  },
+  {
+    href: '/catalogo',
+    label: 'Catálogo',
+    icon: <BookOpen size={20} />,
+  },
+  {
+    href: '/productos',
+    label: 'Productos',
+    icon: <Boxes size={20} />,
+    requiredPermission: 'products.read_prices',
+  },
+  {
+    href: '/clientes',
+    label: 'Clientes',
+    icon: <Building2 size={20} />,
+    requiredPermission: 'customers.read',
   },
   {
     href: '/usuarios',

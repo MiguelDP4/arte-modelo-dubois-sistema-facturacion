@@ -1,0 +1,226 @@
+@use '../../styles/mixins.scss' as *;
+
+.publicMain {
+  min-height: 100vh;
+  padding: calc(var(--topbar-height) + 16px) 12px 32px;
+  background-color: var(--background-page);
+
+  @media (min-width: 768px) {
+    padding: calc(var(--topbar-height) + 24px) 24px 40px;
+  }
+}
+
+.page {
+  @include page-container;
+}
+
+.header {
+  @include page-header;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.filtersCard {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field {
+  @include input-group;
+}
+
+.debounceHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.noticeCard {
+  @include card-surface;
+  background-color: var(--background-surface);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.productCard {
+  @include card-surface;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.thumbBtn {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 200px;
+  padding: 0;
+  border: none;
+  background-color: var(--background-surface);
+  cursor: pointer;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-themed-dark);
+    outline-offset: -2px;
+  }
+}
+
+.imagePlaceholder {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-surface);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.imageCountBadge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  background-color: var(--brand-themed-darkest);
+  color: var(--text-on-brand);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.cardBody {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.categoryLabel {
+  align-self: flex-start;
+  @include badge-base;
+  background-color: var(--background-surface);
+  color: var(--text-secondary);
+}
+
+.productTitle {
+  margin: 0;
+  font-size: 1.06rem;
+  color: var(--text-primary);
+}
+
+.productDesc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.codesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.codeChip {
+  @include badge-base;
+  background-color: var(--background-surface);
+  color: var(--text-primary);
+  font-size: 0.76rem;
+}
+
+.codePrimary {
+  background-color: var(--brand-themed-dark);
+  color: var(--text-on-brand);
+}
+
+.staffPricingBox {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pricesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+
+.stockLine {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.lowStockLine {
+  color: var(--color-danger);
+}
+
+.emptyCard {
+  @include card-surface;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 28px 16px;
+}
+
+.galleryWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.galleryImage {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  background-color: var(--background-surface);
+}
+
+.galleryControls {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.secondaryBtn {
+  @include button-secondary;
+}
+
+.primaryBtn {
+  @include button-primary;
+}

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   COUNTRY_CURRENCY,
+  COUNTRY_LABELS,
   COUNTRY_TAX_LABEL,
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
+  PRODUCT_CODE_LABELS,
+  SEARCH_DEBOUNCE_MS,
+  STOCK_MOVEMENT_LABELS,
+  STOCK_MOVEMENT_TYPES,
+  buildPaginationMeta,
   formatCurrency,
   isPermissionCode,
   LOCKED_ADMIN_PERMISSIONS,
@@ -15,6 +23,13 @@ import {
   updateRolePermissionsSchema,
   inviteUserSchema,
   completeInvitationSchema,
+  createProductSchema,
+  updateProductSchema,
+  createStockMovementSchema,
+  uploadImageSchema,
+  createCustomerSchema,
+  updateCustomerSchema,
+  linkCustomerUserSchema,
 } from '../index';
 
 describe('shared constants & currency helpers', () => {
@@ -112,5 +127,118 @@ describe('shared Zod validators', () => {
         permissions: [{ code: 'orders.read', granted: true }],
       }).success,
     ).toBe(true);
+  });
+
+  it('validates pagination helpers and search debounce constants', () => {
+    expect(PAGE_SIZE_OPTIONS).toEqual([10, 20, 50, 100, 0]);
+    expect(DEFAULT_PAGE_SIZE).toBe(10);
+    expect(SEARCH_DEBOUNCE_MS).toBe(1000);
+
+    expect(buildPaginationMeta(0, 1, 10)).toEqual({
+      page: 1,
+      pageSize: 10,
+      total: 0,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+
+    expect(buildPaginationMeta(25, 1, 10)).toEqual({
+      page: 1,
+      pageSize: 10,
+      total: 25,
+      totalPages: 3,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    expect(buildPaginationMeta(25, 3, 10)).toEqual({
+      page: 3,
+      pageSize: 10,
+      total: 25,
+      totalPages: 3,
+      hasPrev: true,
+      hasNext: false,
+    });
+
+    expect(buildPaginationMeta(25, 3, 0)).toEqual({
+      page: 1,
+      pageSize: 0,
+      total: 25,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+  });
+
+  it('validates product, stock movement, upload and customer schemas', () => {
+    expect(COUNTRY_LABELS.GT).toBe('Guatemala');
+    expect(PRODUCT_CODE_LABELS).toContain('Interno');
+    expect(STOCK_MOVEMENT_TYPES).toContain('MANUAL_IN');
+    expect(STOCK_MOVEMENT_LABELS.INITIAL).toBe('Inventario inicial');
+
+    expect(
+      createProductSchema.safeParse({
+        name: 'Marco Dorado Clásico',
+        codes: [{ code: 'AMD-001', label: 'Interno', isPrimary: true }],
+        priceGTQ: 150,
+        priceUSD: 20,
+        initialStock: 10,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      createProductSchema.safeParse({
+        name: 'Marco sin código',
+        codes: [],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      updateProductSchema.safeParse({
+        name: 'Marco Actualizado',
+        priceHNL: 320,
+      }).success,
+    ).toBe(true);
+
+    // Stock movement > 0 required for MANUAL_IN / MANUAL_OUT
+    expect(
+      createStockMovementSchema.safeParse({
+        type: 'MANUAL_IN',
+        quantity: 0,
+        reason: 'Prueba invalida',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createStockMovementSchema.safeParse({
+        type: 'MANUAL_ADJUST',
+        quantity: 0,
+        reason: 'Conteo físico en cero',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      uploadImageSchema.safeParse({
+        fileName: 'marco.png',
+        mimeType: 'image/png',
+        dataBase64: 'data:image/png;base64,AAAAAAAAAAAAAAAAAAAA',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      createCustomerSchema.safeParse({
+        companyName: 'Galería El Quetzal',
+        managerName: 'Carlos Méndez',
+        phone: '+502 5555-8888',
+        email: 'ventas@elquetzal.gt',
+        country: 'GT',
+        address: 'Zona 10, Ciudad de Guatemala',
+        taxId: '123456-7',
+      }).success,
+    ).toBe(true);
+
+    expect(updateCustomerSchema.safeParse({ isActive: false }).success).toBe(true);
+    expect(linkCustomerUserSchema.safeParse({ userId: 'usr_1' }).success).toBe(true);
   });
 });

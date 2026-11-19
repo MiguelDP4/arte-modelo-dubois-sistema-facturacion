@@ -1,18 +1,27 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ROLE_LABELS, ROLES, type Role } from '@arte-modelo/shared';
+import {
+  DEFAULT_PAGE_SIZE,
+  ROLE_LABELS,
+  ROLES,
+  SEARCH_DEBOUNCE_MS,
+  type PaginationMeta,
+  type Role,
+} from '@arte-modelo/shared';
 import { Mail, Pencil, UserPlus, UserX, UserCheck } from 'lucide-react';
 import { AppShell } from '@/components/AppShell/AppShell';
 import {
   ResponsiveTable,
   type TableColumn,
 } from '@/components/ResponsiveTable/ResponsiveTable';
+import { Pagination } from '@/components/Pagination/Pagination';
 import { Modal } from '@/components/Modal/Modal';
 import { ConfirmModal } from '@/components/Modal/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiClient, getApiErrorMessage } from '@/lib/api-client';
 import type { ManagedUser } from '@/types/auth';
 import styles from './usuarios.module.scss';
@@ -23,8 +32,15 @@ function UsuariosContent() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'inactive'>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteFullName, setInviteFullName] = useState('');
@@ -41,14 +57,20 @@ function UsuariosContent() {
   const [confirmToggleUser, setConfirmToggleUser] = useState<ManagedUser | null>(null);
 
   const usersQuery = useQuery({
-    queryKey: ['users', search, roleFilter, statusFilter],
+    queryKey: ['users', debouncedSearch, roleFilter, statusFilter, page, pageSize],
     queryFn: async () => {
-      const params: Record<string, string> = {};
-      if (search.trim()) params.search = search.trim();
+      const params: Record<string, string | number> = {
+        page,
+        pageSize,
+      };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (roleFilter !== 'ALL') params.role = roleFilter;
       if (statusFilter !== 'all') params.status = statusFilter;
       const res = await apiClient.get('/users', { params });
-      return (res.data.users || []) as ManagedUser[];
+      return res.data as {
+        users: ManagedUser[];
+        pagination?: PaginationMeta;
+      };
     },
   });
 
@@ -276,6 +298,11 @@ function UsuariosContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search.trim() !== debouncedSearch.trim() && (
+            <span className={styles.debounceHint} role="status">
+              Esperando 1s para buscar...
+            </span>
+          )}
         </div>
 
         <div className={styles.field}>
@@ -283,7 +310,10 @@ function UsuariosContent() {
           <select
             id="users-role"
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="ALL">Todos los roles</option>
             {ROLES.map((r) => (
@@ -299,11 +329,12 @@ function UsuariosContent() {
           <select
             id="users-status"
             value={statusFilter}
-            onChange={(e) =>
+            onChange={(e) => {
               setStatusFilter(
                 e.target.value as 'all' | 'active' | 'pending' | 'inactive',
-              )
-            }
+              );
+              setPage(1);
+            }}
           >
             <option value="all">Todos</option>
             <option value="active">Activos</option>
@@ -316,13 +347,27 @@ function UsuariosContent() {
       {usersQuery.isLoading ? (
         <p role="status">Cargando usuarios...</p>
       ) : (
-        <ResponsiveTable
-          columns={columns}
-          data={usersQuery.data || []}
-          rowKey={(u) => u.id}
-          emptyMessage="No se encontraron usuarios con los filtros actuales."
-          ariaLabel="Listado de usuarios"
-        />
+        <>
+          <ResponsiveTable
+            columns={columns}
+            data={usersQuery.data?.users || []}
+            rowKey={(u) => u.id}
+            emptyMessage="No se encontraron usuarios con los filtros actuales."
+            ariaLabel="Listado de usuarios"
+          />
+          {usersQuery.data?.pagination && (
+            <Pagination
+              pagination={usersQuery.data.pagination}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize);
+                setPage(1);
+              }}
+              itemLabel="usuarios"
+            />
+          )}
+        </>
       )}
 
       <Modal

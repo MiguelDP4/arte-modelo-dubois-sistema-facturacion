@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240">
+  <rect width="320" height="240" fill="#fff1de"/>
+  <rect x="58" y="26" width="204" height="184" fill="#531212"/>
+  <rect x="74" y="42" width="172" height="152" fill="#e5edf5"/>
+  <polygon points="88,42 132,42 88,120" fill="#ffffff" opacity="0.7"/>
+  <polygon points="154,42 184,42 88,184 88,148" fill="#ffffff" opacity="0.45"/>
+  <text x="160" y="226" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#08042b">Espejo Biselado Vino</text>
+</svg>
