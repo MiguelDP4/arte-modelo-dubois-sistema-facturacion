@@ -101,22 +101,22 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 | `POST` | `/api/users/:id/resend-invitation` | `users.create` | Regenera y reenvía token de invitación a un usuario pendiente. |
 | `PATCH` | `/api/users/:id` | `users.update` | Edita nombre, teléfono, rol o estado activo (protege último `ADMIN` y auto-desactivación). |
 | `DELETE` | `/api/users/:id` | `users.delete` | Desactivación lógica segura y revocación inmediata de refresh tokens. |
-| `GET` | `/api/permissions` | `permissions.manage` | Devuelve la matriz completa de permisos por módulo para los 3 roles fijos. |
+| `GET` | `/api/permissions` | `permissions.manage` | Devuelve la matriz de permisos paginable (`page`, `pageSize`; `pageSize=0` por defecto devuelve todos). |
 | `PUT` | `/api/permissions/role/:role` | `permissions.manage` | Actualiza permisos de un rol fijo (protegiendo permisos críticos de `ADMIN`). |
-| `GET` | `/api/catalog` | Público | Catálogo público paginado (`page`, `pageSize`) con búsqueda por código/nombre; **excluye precios y stock** (sin categorías). |
+| `GET` | `/api/catalog` | Público | Catálogo público paginado (`page`, `pageSize`; `0` = todos) con búsqueda por código/nombre; **excluye precios y stock** (sin categorías). |
 | `GET` | `/api/catalog/:id` | Público | Detalle público de producto sin precios ni stock. |
-| `GET` | `/api/products` | `products.read` | Lista productos paginados (`page`, `pageSize`) con búsqueda unificada por cualquier código (solo incluye precios/stock si tiene `products.read_prices`). |
+| `GET` | `/api/products` | `products.read` | Lista productos paginados (`page`, `pageSize`; `0` = todos) con búsqueda unificada por cualquier código (solo incluye precios/stock si tiene `products.read_prices`). |
 | `GET` | `/api/products/:id` | `products.read` | Detalle interno de producto respetando `products.read_prices`. |
 | `POST` | `/api/products` | `products.manage` | Crea producto multimoneda, códigos múltiples, imágenes e inventario inicial (`StockMovement`). |
 | `PATCH` | `/api/products/:id` | `products.manage` | Actualiza datos, precios, códigos múltiples e imágenes sin mutar stock directamente. |
 | `DELETE` | `/api/products/:id` | `products.manage` | Archiva lógicamente el producto (`isActive = false`). |
 | `POST` | `/api/products/:id/restore` | `products.manage` | Restaura producto archivado al catálogo activo. |
-| `GET` | `/api/products/:id/stock-movements` | `products.read_prices` | Historial cronológico de Kardex del producto. |
+| `GET` | `/api/products/:id/stock-movements` | `products.read_prices` | Historial cronológico de Kardex paginable (`page`, `pageSize`; `0` = todos). |
 | `POST` | `/api/products/:id/stock-movements` | `products.manage` | Registra entrada, salida o ajuste exacto transaccional de stock. |
 | `POST` | `/api/uploads/product-image` | `products.manage` | Sube fotografía JPG/PNG/WebP a Cloudflare R2 o fallback local `/api/uploads/products/`. |
 | `GET` | `/api/uploads/products/:fileName` | Público (imagen) | Sirve archivos locales en desarrollo cuando R2 no está configurado. |
-| `GET` | `/api/customers` | `customers.read` | Lista clientes regionales paginados (`page`, `pageSize`) con filtro por país y búsqueda general. |
-| `GET` | `/api/customers/unlinked-users` | `customers.manage` | Usuarios `CUSTOMER` activos disponibles para vincular. |
+| `GET` | `/api/customers` | `customers.read` | Lista clientes regionales paginados (`page`, `pageSize`; `0` = todos) con filtro por país y búsqueda general. |
+| `GET` | `/api/customers/unlinked-users` | `customers.manage` | Usuarios `CUSTOMER` activos disponibles para vincular (paginable, `pageSize=0` por defecto). |
 | `GET` | `/api/customers/:id` | `customers.read` | Ficha completa del cliente y usuarios vinculados. |
 | `POST` | `/api/customers` | `customers.manage` | Crea cliente regional asignando moneda y etiqueta fiscal automática. |
 | `PATCH` | `/api/customers/:id` | `customers.manage` | Actualiza datos fiscales/regionales y estado activo. |
@@ -133,7 +133,7 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
   - *Tema Claro:* Fondos `#ffe7c8` / `#f5d5b7` / `#fff1de` / `#fdfaf6`; marca azul marino `#06005c` / `#08042b` / `#110b51`.
   - *Tema Oscuro (`html[data-theme="dark"]`):* Fondos carbón `#242424` / `#1a1a1a` / `#292929` / `#333333`; marca vino/borgoña `#250000` / `#531212` / `#762323`; acentos dorado `#e0c942` y rojo `#b61212`.
 - **Mobile-First:** Base diseñada desde 320px/375px con áreas táctiles `>= 44px`, cero scroll horizontal y `ResponsiveTable` que convierte tablas en cards apiladas en móvil.
-- **Paginación y Debounce (`1000 ms`):** Componente `Pagination` con selector de tamaño de página (`10`, `20`, `50`, `100`) respaldado por consultas paginadas en BD, y hook `useDebouncedValue` (`SEARCH_DEBOUNCE_MS = 1000`) en todos los buscadores para evitar solicitudes excesivas al servidor.
+- **Paginación y Debounce (`1000 ms`):** Componente `Pagination` con selector de tamaño de página (`10`, `20`, `50`, `100` y `Todos` = `pageSize=0`) respaldado por consultas paginadas en todos los endpoints de listado, y hook `useDebouncedValue` (`SEARCH_DEBOUNCE_MS = 1000`) en todos los buscadores para evitar solicitudes excesivas al servidor.
 - **Sin `alert()` / `confirm()`:** Todo aviso o confirmación usa `ToastContainer`, `Modal` o `ConfirmModal`.
 
 ### Páginas Implementadas

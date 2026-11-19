@@ -11,7 +11,7 @@ import {
 } from '@arte-modelo/shared';
 import { prisma } from '../lib/prisma';
 import { badRequest, conflict, notFound } from '../lib/errors';
-import { containsFilter, parsePaginationQuery } from '../lib/pagination';
+import { containsFilter, parsePaginationQuery, prismaPaginationArgs } from '../lib/pagination';
 
 function toCustomerDto(customer: {
   id: string;
@@ -104,8 +104,7 @@ export async function listCustomers(query: {
       _count: { select: { users: true } },
     },
     orderBy: [{ companyName: 'asc' }],
-    skip: (pagination.page - 1) * pagination.pageSize,
-    take: pagination.pageSize,
+    ...prismaPaginationArgs(pagination),
   });
 
   return {
@@ -143,13 +142,22 @@ export async function getCustomerById(id: string) {
   };
 }
 
-export async function listUnlinkedCustomerUsers() {
-  return prisma.user.findMany({
-    where: {
-      role: 'CUSTOMER',
-      isActive: true,
-      customerId: null,
-    },
+export async function listUnlinkedCustomerUsers(query?: {
+  page?: unknown;
+  pageSize?: unknown;
+}) {
+  const { page, pageSize } = parsePaginationQuery(query || {}, 0);
+  const where = {
+    role: 'CUSTOMER',
+    isActive: true,
+    customerId: null,
+  };
+
+  const total = await prisma.user.count({ where });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
+  const users = await prisma.user.findMany({
+    where,
     select: {
       id: true,
       fullName: true,
@@ -158,7 +166,10 @@ export async function listUnlinkedCustomerUsers() {
       isVerified: true,
     },
     orderBy: [{ fullName: 'asc' }],
+    ...prismaPaginationArgs(pagination),
   });
+
+  return { users, pagination };
 }
 
 export async function createCustomer(input: CreateCustomerInput) {

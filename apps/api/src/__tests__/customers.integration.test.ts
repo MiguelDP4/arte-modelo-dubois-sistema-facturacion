@@ -159,6 +159,20 @@ describe('Regional Customers & Account Linking API integration', () => {
     expect(page2.body.pagination.hasPrev).toBe(true);
     expect(page2.body.pagination.hasNext).toBe(false);
 
+    const allCustomers = await request(app)
+      .get('/api/customers?pageSize=0')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(allCustomers.status).toBe(200);
+    expect(allCustomers.body.customers).toHaveLength(2);
+    expect(allCustomers.body.pagination).toEqual({
+      page: 1,
+      pageSize: 0,
+      total: 2,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+
     // Update customer country to GT -> updates currency to GTQ & taxLabel to NIT
     const updated = await request(app)
       .patch(`/api/customers/${hnId}`)
@@ -168,7 +182,7 @@ describe('Regional Customers & Account Linking API integration', () => {
     expect(updated.body.customer.currency).toBe('GTQ');
     expect(updated.body.customer.taxLabel).toBe('NIT');
 
-    // List unlinked CUSTOMER users
+    // List unlinked CUSTOMER users (supports pagination and pageSize=0 default)
     const unlinkedBefore = await request(app)
       .get('/api/customers/unlinked-users')
       .set('Authorization', `Bearer ${admin.token}`);
@@ -176,6 +190,14 @@ describe('Regional Customers & Account Linking API integration', () => {
     expect(unlinkedBefore.body.users.map((u: { id: string }) => u.id)).toContain(
       custUser.user.id,
     );
+    expect(unlinkedBefore.body.pagination.pageSize).toBe(0);
+
+    const unlinkedPaged = await request(app)
+      .get('/api/customers/unlinked-users?page=1&pageSize=1')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(unlinkedPaged.status).toBe(200);
+    expect(unlinkedPaged.body.users).toHaveLength(1);
+    expect(unlinkedPaged.body.pagination.pageSize).toBe(1);
 
     // Linking EMPLOYEE fails (only CUSTOMER accounts allowed)
     const linkStaff = await request(app)

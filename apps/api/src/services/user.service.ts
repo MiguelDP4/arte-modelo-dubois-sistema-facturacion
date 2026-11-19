@@ -8,7 +8,7 @@ import {
 import { prisma } from '../lib/prisma';
 import { generateRandomToken, sha256 } from '../lib/crypto';
 import { badRequest, notFound } from '../lib/errors';
-import { containsFilter, parsePaginationQuery } from '../lib/pagination';
+import { containsFilter, parsePaginationQuery, prismaPaginationArgs } from '../lib/pagination';
 import { env } from '../config/env';
 import { sendInvitationEmail } from './email.service';
 import { toPublicUser } from './auth.service';
@@ -55,8 +55,7 @@ export async function listUsers(query: ListUsersQuery) {
   const users = await prisma.user.findMany({
     where,
     orderBy: [{ createdAt: 'desc' }],
-    skip: (pagination.page - 1) * pagination.pageSize,
-    take: pagination.pageSize,
+    ...prismaPaginationArgs(pagination),
   });
 
   return {

@@ -1,4 +1,5 @@
 import {
+  buildPaginationMeta,
   LOCKED_ADMIN_PERMISSIONS,
   ROLES,
   type PermissionCode,
@@ -7,6 +8,7 @@ import {
 } from '@arte-modelo/shared';
 import { prisma } from '../lib/prisma';
 import { badRequest } from '../lib/errors';
+import { parsePaginationQuery } from '../lib/pagination';
 
 export async function getPermissionsForRole(role: Role): Promise<PermissionCode[]> {
   const rows = await prisma.rolePermission.findMany({
@@ -27,7 +29,11 @@ export async function getPermissionsForRole(role: Role): Promise<PermissionCode[
   return Array.from(granted).sort();
 }
 
-export async function getPermissionsMatrix() {
+export async function getPermissionsMatrix(query?: {
+  page?: unknown;
+  pageSize?: unknown;
+}) {
+  const { page, pageSize } = parsePaginationQuery(query || {}, 0);
   const permissions = await prisma.permission.findMany({
     orderBy: [{ module: 'asc' }, { code: 'asc' }],
     include: {
@@ -35,35 +41,47 @@ export async function getPermissionsMatrix() {
     },
   });
 
+  const mapped = permissions.map((perm) => {
+    const grants: Record<Role, boolean> = {
+      ADMIN: false,
+      EMPLOYEE: false,
+      CUSTOMER: false,
+    };
+
+    for (const rp of perm.rolePermissions) {
+      if ((ROLES as readonly string[]).includes(rp.role)) {
+        grants[rp.role as Role] = rp.granted;
+      }
+    }
+
+    if ((LOCKED_ADMIN_PERMISSIONS as readonly string[]).includes(perm.code)) {
+      grants.ADMIN = true;
+    }
+
+    return {
+      id: perm.id,
+      code: perm.code as PermissionCode,
+      module: perm.module,
+      name: perm.name,
+      description: perm.description,
+      grants,
+    };
+  });
+
+  const pagination = buildPaginationMeta(mapped.length, page, pageSize);
+  const paginated =
+    pagination.pageSize === 0
+      ? mapped
+      : mapped.slice(
+          (pagination.page - 1) * pagination.pageSize,
+          pagination.page * pagination.pageSize,
+        );
+
   return {
     roles: [...ROLES],
     lockedAdminPermissions: [...LOCKED_ADMIN_PERMISSIONS],
-    permissions: permissions.map((perm) => {
-      const grants: Record<Role, boolean> = {
-        ADMIN: false,
-        EMPLOYEE: false,
-        CUSTOMER: false,
-      };
-
-      for (const rp of perm.rolePermissions) {
-        if ((ROLES as readonly string[]).includes(rp.role)) {
-          grants[rp.role as Role] = rp.granted;
-        }
-      }
-
-      if ((LOCKED_ADMIN_PERMISSIONS as readonly string[]).includes(perm.code)) {
-        grants.ADMIN = true;
-      }
-
-      return {
-        id: perm.id,
-        code: perm.code as PermissionCode,
-        module: perm.module,
-        name: perm.name,
-        description: perm.description,
-        grants,
-      };
-    }),
+    permissions: paginated,
+    pagination,
   };
 }
 

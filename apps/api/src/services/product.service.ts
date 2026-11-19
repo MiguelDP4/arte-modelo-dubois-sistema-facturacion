@@ -6,7 +6,7 @@ import {
 } from '@arte-modelo/shared';
 import { prisma } from '../lib/prisma';
 import { badRequest, conflict, notFound } from '../lib/errors';
-import { containsFilter, parsePaginationQuery } from '../lib/pagination';
+import { containsFilter, parsePaginationQuery, prismaPaginationArgs } from '../lib/pagination';
 
 const productInclude = {
   codes: {
@@ -135,8 +135,7 @@ export async function listPublicCatalog(query: {
     where,
     include: productInclude,
     orderBy: [{ name: 'asc' }],
-    skip: (pagination.page - 1) * pagination.pageSize,
-    take: pagination.pageSize,
+    ...prismaPaginationArgs(pagination),
   });
 
   return {
@@ -183,8 +182,13 @@ export async function listProducts(
       .map((p) => p.id);
 
     const pagination = buildPaginationMeta(lowStockIds.length, page, pageSize);
-    const start = (pagination.page - 1) * pagination.pageSize;
-    const pageIds = lowStockIds.slice(start, start + pagination.pageSize);
+    const pageIds =
+      pagination.pageSize === 0
+        ? lowStockIds
+        : lowStockIds.slice(
+            (pagination.page - 1) * pagination.pageSize,
+            pagination.page * pagination.pageSize,
+          );
 
     const items =
       pageIds.length > 0
@@ -208,8 +212,7 @@ export async function listProducts(
     where,
     include: productInclude,
     orderBy: [{ name: 'asc' }],
-    skip: (pagination.page - 1) * pagination.pageSize,
-    take: pagination.pageSize,
+    ...prismaPaginationArgs(pagination),
   });
 
   return {
@@ -413,15 +416,23 @@ export async function restoreProduct(id: string) {
   };
 }
 
-export async function listStockMovements(productId: string) {
+export async function listStockMovements(
+  productId: string,
+  query?: { page?: unknown; pageSize?: unknown },
+) {
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) {
     throw notFound('Producto no encontrado.');
   }
 
+  const { page, pageSize } = parsePaginationQuery(query || {}, 0);
+  const total = await prisma.stockMovement.count({ where: { productId } });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
   const movements = await prisma.stockMovement.findMany({
     where: { productId },
     orderBy: [{ createdAt: 'desc' }],
+    ...prismaPaginationArgs(pagination),
     include: {
       performedBy: {
         select: { id: true, fullName: true, email: true },
@@ -435,6 +446,7 @@ export async function listStockMovements(productId: string) {
     currentStock: product.stock,
     lowStockThreshold: product.lowStockThreshold,
     movements,
+    pagination,
   };
 }
 

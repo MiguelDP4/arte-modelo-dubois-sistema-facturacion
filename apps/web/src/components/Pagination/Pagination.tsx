@@ -20,8 +20,8 @@ export function Pagination({
   itemLabel = 'registros',
 }: PaginationProps) {
   const { page, total, totalPages, hasPrev, hasNext } = pagination;
-  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const end = Math.min(total, page * pageSize);
+  const start = total === 0 ? 0 : pageSize === 0 ? 1 : (page - 1) * pageSize + 1;
+  const end = pageSize === 0 ? total : Math.min(total, page * pageSize);
 
   return (
     <nav className={styles.bar} aria-label="Paginación de resultados">
@@ -41,7 +41,7 @@ export function Pagination({
           >
             {PAGE_SIZE_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
-                {opt}
+                {opt === 0 ? 'Todos' : opt}
               </option>
             ))}
           </select>

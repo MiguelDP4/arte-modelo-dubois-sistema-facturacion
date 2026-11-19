@@ -115,6 +115,10 @@ export async function listStockMovements(
   try {
     const result = await productService.listStockMovements(
       String(req.params.id),
+      {
+        page: req.query.page,
+        pageSize: req.query.pageSize,
+      },
     );
     res.status(200).json({ success: true, ...result });
   } catch (err) {

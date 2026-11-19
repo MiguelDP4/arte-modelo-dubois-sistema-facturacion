@@ -81,6 +81,30 @@ describe('useDebouncedValue & Pagination', () => {
     });
     expect(onPageSizeChange).toHaveBeenCalledWith(50);
 
+    fireEvent.change(screen.getByLabelText('Registros por página'), {
+      target: { value: '0' },
+    });
+    expect(onPageSizeChange).toHaveBeenCalledWith(0);
+
+    rerender(
+      <Pagination
+        pagination={{
+          page: 1,
+          pageSize: 0,
+          total: 25,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        }}
+        pageSize={0}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        itemLabel="productos"
+      />,
+    );
+    expect(screen.getByText('Mostrando 1–25 de 25 productos')).toBeInTheDocument();
+    expect(screen.getByText('Página 1 de 1')).toBeInTheDocument();
+
     rerender(
       <Pagination
         pagination={{

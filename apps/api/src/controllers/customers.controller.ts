@@ -19,13 +19,16 @@ export async function list(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function listUnlinkedUsers(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) {
   try {
-    const users = await customerService.listUnlinkedCustomerUsers();
-    res.status(200).json({ success: true, users });
+    const result = await customerService.listUnlinkedCustomerUsers({
+      page: req.query.page,
+      pageSize: req.query.pageSize,
+    });
+    res.status(200).json({ success: true, ...result });
   } catch (err) {
     next(err);
   }

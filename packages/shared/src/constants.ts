@@ -101,7 +101,7 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export const PAYMENT_METHODS = ['CASH', 'TRANSFER', 'CHECK'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 0] as const;
 export const DEFAULT_PAGE_SIZE = 10;
 export const MAX_PAGE_SIZE = 100;
 export const SEARCH_DEBOUNCE_MS = 1000;
@@ -120,7 +120,21 @@ export function buildPaginationMeta(
   page: number,
   pageSize: number,
 ): PaginationMeta {
-  const safePageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(pageSize || DEFAULT_PAGE_SIZE)));
+  if (pageSize === 0) {
+    return {
+      page: 1,
+      pageSize: 0,
+      total,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    };
+  }
+
+  const safePageSize = Math.min(
+    MAX_PAGE_SIZE,
+    Math.max(1, Math.floor(pageSize || DEFAULT_PAGE_SIZE)),
+  );
   const totalPages = Math.max(1, Math.ceil(total / safePageSize));
   const safePage = Math.min(Math.max(1, Math.floor(page || 1)), totalPages);
   return {

@@ -250,12 +250,27 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
     expect(adjRes.body.product.stock).toBe(12);
     expect(adjRes.body.movement.quantityDelta).toBe(7);
 
-    // Kardex history shows INITIAL + 3 movements = 4 entries
+    // Kardex history shows INITIAL + 3 movements = 4 entries, and supports pagination
     const history = await request(app)
-      .get(`/api/products/${id1}/stock-movements`)
+      .get(`/api/products/${id1}/stock-movements?page=1&pageSize=2`)
       .set('Authorization', `Bearer ${admin.token}`);
     expect(history.status).toBe(200);
-    expect(history.body.movements).toHaveLength(4);
+    expect(history.body.movements).toHaveLength(2);
+    expect(history.body.pagination).toEqual({
+      page: 1,
+      pageSize: 2,
+      total: 4,
+      totalPages: 2,
+      hasPrev: false,
+      hasNext: true,
+    });
+
+    const historyAll = await request(app)
+      .get(`/api/products/${id1}/stock-movements?pageSize=0`)
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(historyAll.status).toBe(200);
+    expect(historyAll.body.movements).toHaveLength(4);
+    expect(historyAll.body.pagination.pageSize).toBe(0);
 
     // Soft-delete hides from public catalog & active products, restore brings it back
     const archRes = await request(app)
@@ -330,6 +345,26 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
       hasPrev: true,
       hasNext: false,
     });
+
+    // pageSize=0 returns all matching items without slicing
+    const catalogAll = await request(app).get('/api/catalog?pageSize=0');
+    expect(catalogAll.status).toBe(200);
+    expect(catalogAll.body.products).toHaveLength(4);
+    expect(catalogAll.body.pagination).toEqual({
+      page: 1,
+      pageSize: 0,
+      total: 4,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+
+    const lowStockAll = await request(app)
+      .get('/api/products?lowStockOnly=true&pageSize=0')
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(lowStockAll.status).toBe(200);
+    expect(lowStockAll.body.products).toHaveLength(2);
+    expect(lowStockAll.body.pagination.pageSize).toBe(0);
   });
 
   it('uploads product image to local fallback storage and serves it safely', async () => {

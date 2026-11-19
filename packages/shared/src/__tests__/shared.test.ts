@@ -130,7 +130,7 @@ describe('shared Zod validators', () => {
   });
 
   it('validates pagination helpers and search debounce constants', () => {
-    expect(PAGE_SIZE_OPTIONS).toEqual([10, 20, 50, 100]);
+    expect(PAGE_SIZE_OPTIONS).toEqual([10, 20, 50, 100, 0]);
     expect(DEFAULT_PAGE_SIZE).toBe(10);
     expect(SEARCH_DEBOUNCE_MS).toBe(1000);
 
@@ -158,6 +158,15 @@ describe('shared Zod validators', () => {
       total: 25,
       totalPages: 3,
       hasPrev: true,
+      hasNext: false,
+    });
+
+    expect(buildPaginationMeta(25, 3, 0)).toEqual({
+      page: 1,
+      pageSize: 0,
+      total: 25,
+      totalPages: 1,
+      hasPrev: false,
       hasNext: false,
     });
   });
