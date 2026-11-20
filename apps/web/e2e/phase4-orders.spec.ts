@@ -169,14 +169,14 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await expect(marcoOpt).toContainText('185.00');
     await marcoOpt.click();
 
-    await expect(
-      page.getByRole('tooltip').getByText(/Último precio aplicado a este cliente:/i),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('tooltip').getByText(/175\.00/),
-    ).toBeVisible();
-
     const infoBtn = page.getByRole('button', { name: 'Ver último precio línea 1' });
+    await expect(infoBtn).toBeVisible();
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+
+    await page.locator('#line-price-0').hover();
+    await page.locator('#line-price-0').focus();
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+
     const subtotalLabel = page.locator('span', { hasText: /^Subtotal$/ }).first();
     const infoBox = await infoBtn.boundingBox();
     const subBox = await subtotalLabel.boundingBox();
@@ -187,6 +187,17 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     } else if (isMobile && infoBox && subBox) {
       expect(infoBox.y + infoBox.height).toBeLessThanOrEqual(subBox.y);
     }
+
+    await infoBtn.click();
+    await expect(
+      page.getByRole('tooltip').getByText(/Último precio aplicado a este cliente:/i),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('tooltip').getByText(/175\.00/),
+    ).toBeVisible();
+
+    await page.getByRole('heading', { name: 'Nuevo Pedido B2B' }).click();
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
 
     // Agregar Línea 2: verificar que Marco Clásico Azul Marino NO aparece (sin repetidos)
     // y elegir Cuadro Abstracto Terracota que no tiene historial (sin mostrar "sin historial")

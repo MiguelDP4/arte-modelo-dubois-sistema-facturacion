@@ -309,14 +309,34 @@ describe('Orders Module Pages (Phase 4)', () => {
       await screen.findByRole('option', { name: /Marco Clásico Azul/i }),
     );
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Último precio aplicado a este cliente:/i),
-      ).toBeInTheDocument();
+    const tooltipBtn = await screen.findByRole('button', {
+      name: 'Ver último precio línea 1',
     });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    const priceInput = screen.getByLabelText(/Precio unit\./i);
+    fireEvent.mouseEnter(priceInput);
+    fireEvent.focus(priceInput);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    fireEvent.click(tooltipBtn);
+    expect(
+      screen.getByText(/Último precio aplicado a este cliente:/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/PED-2026-0000/i)).toBeInTheDocument();
 
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    fireEvent.click(tooltipBtn);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    fireEvent.click(tooltipBtn);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Usar último precio' }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Descuento de línea' }));
     expect(screen.getByLabelText('Tipo descuento')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Cantidad'), {
