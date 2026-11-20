@@ -181,3 +181,31 @@ npm run build
 npm run test:coverage
 npm run test:e2e
 ```
+
+
+## Módulo de Pagos, Consignaciones, Excel (`.xlsx`), Correos y Dashboard (Fases 5 y 6)
+
+### Modelos Prisma Agregados
+- **`Payment`**: Registra múltiples abonos por pedido (`CASH`, `TRANSFER`, `CHECK` — sin tarjeta de crédito), `amount`, `paymentDate`, `reference`, `receiptImageUrl` (Cloudinary), `notes`, `status` (`ACTIVE` | `VOIDED`), `voidReason`, `voidedAt` y `voidedById`. Al registrar o anular un pago se recalculan transaccionalmente `Order.amountPaid`, `Order.amountPending` y `Order.paymentStatus`.
+- **`ConsignmentReturn` y `ConsignmentReturnItem`**: Registra devoluciones de mercadería no vendida de pedidos `CONSIGNMENT`. Reingresa unidades al `stock` vía `StockMovement` (`type: 'CONSIGNMENT_RETURN'`), incrementa `OrderItem.quantityReturned` y `Order.returnedTotal`, y recalcula `totalAmount`, `amountPending` y `paymentStatus`.
+
+### Endpoints Backend Fase 5 & 6
+- `GET /api/orders/:id/payments` — Lista los abonos asociados a un pedido (con permisos RBAC o propiedad de `CUSTOMER`).
+- `POST /api/orders/:id/payments` — Registra un nuevo abono (`payments.manage`) y dispara correo al cliente.
+- `POST /api/payments/:paymentId/void` — Anula un pago manteniendo trazabilidad histórica y recalcula saldos del pedido (`payments.manage`).
+- `POST /api/uploads/payment-receipt` — Sube foto o comprobante de depósito/cheque a Cloudinary (`payments.manage`).
+- `GET /api/orders/consignments` — Resumen consolidado por cliente (`byCustomer`) y listado paginado de pedidos en consignación (`page`, `pageSize=0` para todos).
+- `POST /api/orders/:id/consignment-returns` — Registra devoluciones de consignación con reingreso automático a inventario (`orders.consignment_return`).
+- `GET /api/orders/:id/excel?type=invoice|consignment|delivery&dispatchId=...` — Descarga libro Excel (`.xlsx`) generado con `ExcelJS`, logo oficial incrustado (`A1:B4`), datos fiscales del cliente y columnas de pedido / entregado / devuelto / pendiente.
+- `GET /api/dashboard` — KPIs operativos por rol: pedidos pendientes/por confirmar, cuentas por cobrar agrupadas por moneda (`GTQ`, `HNL`, `NIO`, `USD`), consignaciones próximas a revisión y alertas de stock bajo.
+
+### Notificaciones Automáticas por Correo (`email.service.ts`)
+- Pedido creado por `CUSTOMER` en estado `PENDING_CONFIRMATION` → notificación al staff.
+- Pedido confirmado por staff (`PENDING_CONFIRMATION` → `CONFIRMED`) → notificación al cliente.
+- Despacho parcial o total registrado (`POST /api/orders/:id/dispatches`) → notificación al cliente con unidades entregadas.
+- Abono registrado (`POST /api/orders/:id/payments`) → notificación al cliente con monto abonado y saldo pendiente.
+
+### Vistas Frontend Fase 5 & 6
+- **`/` (`Dashboard`)**: Vista ejecutiva multimoneda para `ADMIN`/`EMPLOYEE` (KPIs, Cuentas por Cobrar por moneda, Consignaciones Próximas y Alertas de Stock Bajo) y resumen de pedidos activos para `CUSTOMER`.
+- **`/consignaciones`**: Control consolidado por cliente y lista paginada de consignaciones con búsqueda debounced (`1000 ms`), filtros por país/estado y descarga rápida de `Recibo .xlsx`.
+- **`/pedidos/[id]`**: Secciones de **Pagos y Abonos** (modal de registro con subida de comprobante + anulación lógica), **Control de Consignación y Devoluciones** y descarga de documentos Excel (`.xlsx`).

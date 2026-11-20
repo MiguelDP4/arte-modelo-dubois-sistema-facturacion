@@ -5,19 +5,27 @@ import {
   COUNTRIES,
   COUNTRY_LABELS,
   deriveFulfillmentStatus,
+  derivePaymentStatus,
+  formatCurrency,
+  PAYMENT_METHOD_LABELS,
   roundMoney,
   type ApprovalStatus,
   type CancelOrderInput,
   type ConfirmOrderInput,
   type CountryCode,
+  type CreateConsignmentReturnInput,
   type CreateDispatchInput,
   type CreateOrderInput,
+  type CreatePaymentInput,
   type Currency,
   type DiscountType,
   type OrderItemInput,
   type PackOrderInput,
+  type PaymentMethod,
   type UpdateOrderInput,
+  type VoidPaymentInput,
 } from '@arte-modelo/shared';
+import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import {
@@ -26,6 +34,12 @@ import {
   prismaPaginationArgs,
 } from '../lib/pagination';
 import type { AuthenticatedUser } from '../middlewares/auth.middleware';
+import {
+  sendCustomerOrderPendingStaffEmail,
+  sendOrderConfirmedCustomerEmail,
+  sendOrderDispatchedCustomerEmail,
+  sendPaymentRegisteredCustomerEmail,
+} from './email.service';
 
 const orderDetailInclude = {
   customer: {
@@ -77,6 +91,30 @@ const orderDetailInclude = {
       },
     },
   },
+  payments: {
+    orderBy: [{ paymentDate: 'desc' as const }, { createdAt: 'desc' as const }],
+    include: {
+      registeredBy: { select: { id: true, fullName: true } },
+      voidedBy: { select: { id: true, fullName: true } },
+    },
+  },
+  consignmentReturns: {
+    orderBy: [{ returnNumber: 'asc' as const }],
+    include: {
+      receivedBy: { select: { id: true, fullName: true } },
+      items: {
+        include: {
+          orderItem: {
+            select: {
+              id: true,
+              productName: true,
+              productPrimaryCode: true,
+            },
+          },
+        },
+      },
+    },
+  },
   createdBy: { select: { id: true, fullName: true } },
   confirmedBy: { select: { id: true, fullName: true } },
   cancelledBy: { select: { id: true, fullName: true } },
@@ -85,7 +123,13 @@ const orderDetailInclude = {
 const orderListInclude = {
   customer: orderDetailInclude.customer,
   items: orderDetailInclude.items,
-  _count: { select: { dispatches: true } },
+  _count: {
+    select: {
+      dispatches: true,
+      payments: true,
+      consignmentReturns: true,
+    },
+  },
   createdBy: { select: { id: true, fullName: true } },
   confirmedBy: { select: { id: true, fullName: true } },
   cancelledBy: { select: { id: true, fullName: true } },
@@ -135,6 +179,7 @@ function serializeOrder(
     itemsDiscountTotal: number;
     shippingCost: number;
     shippingDiscount: number;
+    returnedTotal: number;
     totalAmount: number;
     amountPaid: number;
     amountPending: number;
@@ -165,6 +210,7 @@ function serializeOrder(
       quantityOrdered: number;
       quantityPacked: number;
       quantityDispatched: number;
+      quantityReturned: number;
       unitPrice: number;
       discountType: string;
       discountValue: number;
@@ -197,7 +243,48 @@ function serializeOrder(
         };
       }>;
     }>;
-    _count?: { dispatches: number };
+    payments?: Array<{
+      id: string;
+      orderId: string;
+      amount: number;
+      method: string;
+      paymentDate: Date;
+      reference: string | null;
+      receiptImageUrl: string | null;
+      notes: string | null;
+      status: string;
+      voidReason: string | null;
+      voidedAt: Date | null;
+      registeredBy: { id: string; fullName: string } | null;
+      voidedBy: { id: string; fullName: string } | null;
+      createdAt: Date;
+    }>;
+    consignmentReturns?: Array<{
+      id: string;
+      orderId: string;
+      returnNumber: number;
+      returnedAt: Date;
+      notes: string | null;
+      totalCredit: number;
+      receivedBy: { id: string; fullName: string } | null;
+      items: Array<{
+        id: string;
+        orderItemId: string;
+        quantityReturned: number;
+        unitCredit: number;
+        lineCredit: number;
+        orderItem: {
+          id: string;
+          productName: string;
+          productPrimaryCode: string;
+        };
+      }>;
+    }>;
+    _count?: {
+      dispatches: number;
+      payments?: number;
+      consignmentReturns?: number;
+    };
     createdBy?: { id: string; fullName: string } | null;
     confirmedBy?: { id: string; fullName: string } | null;
     cancelledBy?: { id: string; fullName: string } | null;
@@ -232,6 +319,7 @@ function serializeOrder(
     itemsDiscountTotal: hidePrices ? null : order.itemsDiscountTotal,
     shippingCost: hidePrices ? null : order.shippingCost,
     shippingDiscount: hidePrices ? null : order.shippingDiscount,
+    returnedTotal: hidePrices ? null : order.returnedTotal,
     totalAmount: hidePrices ? null : order.totalAmount,
     amountPaid: hidePrices ? null : order.amountPaid,
     amountPending: hidePrices ? null : order.amountPending,
@@ -246,6 +334,9 @@ function serializeOrder(
     itemsCount: order.items.length,
     dispatchesCount:
       order.dispatches?.length ?? order._count?.dispatches ?? 0,
+    paymentsCount: order.payments?.length ?? order._count?.payments ?? 0,
+    consignmentReturnsCount:
+      order.consignmentReturns?.length ?? order._count?.consignmentReturns ?? 0,
     items: order.items.map((item) => ({
       id: item.id,
       orderId: item.orderId,
@@ -255,9 +346,18 @@ function serializeOrder(
       quantityOrdered: item.quantityOrdered,
       quantityPacked: item.quantityPacked,
       quantityDispatched: item.quantityDispatched,
+      quantityReturned: item.quantityReturned,
       quantityPendingDispatch: Math.max(
         0,
         item.quantityOrdered - item.quantityDispatched,
+      ),
+      quantityNetConsigned: Math.max(
+        0,
+        item.quantityDispatched - item.quantityReturned,
+      ),
+      quantityAvailableToReturn: Math.max(
+        0,
+        item.quantityDispatched - item.quantityReturned,
       ),
       currentStock:
         actor.role !== 'CUSTOMER' ? (item.product?.stock ?? null) : null,
@@ -269,6 +369,27 @@ function serializeOrder(
       lineTotal: hidePrices ? null : item.lineTotal,
     })),
     ...(order.dispatches ? { dispatches: order.dispatches } : {}),
+    ...(order.payments
+      ? {
+          payments: order.payments.map((p) => ({
+            ...p,
+            amount: hidePrices ? null : p.amount,
+          })),
+        }
+      : {}),
+    ...(order.consignmentReturns
+      ? {
+          consignmentReturns: order.consignmentReturns.map((r) => ({
+            ...r,
+            totalCredit: hidePrices ? null : r.totalCredit,
+            items: r.items.map((ri) => ({
+              ...ri,
+              unitCredit: hidePrices ? null : ri.unitCredit,
+              lineCredit: hidePrices ? null : ri.lineCredit,
+            })),
+          })),
+        }
+      : {}),
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };
@@ -628,6 +749,33 @@ export async function createOrder(
     });
   });
 
+  if (isCustomer) {
+    try {
+      const staffUsers = await prisma.user.findMany({
+        where: {
+          role: { in: ['ADMIN', 'EMPLOYEE'] },
+          isActive: true,
+          isVerified: true,
+        },
+        select: { email: true },
+      });
+      const orderUrl = `${env.frontendUrl}/pedidos/${created.id}`;
+      await Promise.all(
+        staffUsers.map((staff) =>
+          sendCustomerOrderPendingStaffEmail({
+            to: staff.email,
+            orderNumber: created.orderNumber,
+            customerName: customer.companyName,
+            itemsCount: created.items.length,
+            orderUrl,
+          }),
+        ),
+      );
+    } catch {
+      // No bloquear creación del pedido si falla el proveedor de correo
+    }
+  }
+
   return {
     order: serializeOrder(created, actor),
     message: isCustomer
@@ -746,6 +894,21 @@ export async function confirmOrder(
     });
   });
 
+  try {
+    await sendOrderConfirmedCustomerEmail({
+      to: confirmed.customer.email,
+      customerName: confirmed.customer.companyName,
+      orderNumber: confirmed.orderNumber,
+      totalFormatted: formatCurrency(
+        confirmed.totalAmount,
+        confirmed.currency as Currency,
+      ),
+      orderUrl: `${env.frontendUrl}/pedidos/${confirmed.id}`,
+    });
+  } catch {
+    // No bloquear confirmación si falla el correo
+  }
+
   return {
     order: serializeOrder(confirmed, actor),
     message: 'Pedido confirmado correctamente.',
@@ -858,10 +1021,15 @@ export async function updateOrder(
       items: computedItems,
       shippingCost: input.shippingCost ?? existing.shippingCost,
       shippingDiscount: input.shippingDiscount ?? existing.shippingDiscount,
+      returnedTotal: existing.returnedTotal,
       amountPaid: existing.amountPaid,
     });
 
     const fulfillmentStatus = deriveFulfillmentStatus(computedItems);
+    const paymentStatus = derivePaymentStatus({
+      totalAmount: totals.totalAmount,
+      amountPaid: existing.amountPaid,
+    });
 
     return tx.order.update({
       where: { id: existing.id },
@@ -872,6 +1040,7 @@ export async function updateOrder(
           : {}),
         consignmentDueDate: dueDate,
         fulfillmentStatus,
+        paymentStatus,
         subtotal: totals.subtotal,
         itemsDiscountTotal: totals.itemsDiscountTotal,
         shippingCost: totals.shippingCost,
@@ -1153,6 +1322,22 @@ export async function createDispatch(
     });
   });
 
+  try {
+    const latestDispatch =
+      dispatchedOrder.dispatches[dispatchedOrder.dispatches.length - 1];
+    await sendOrderDispatchedCustomerEmail({
+      to: dispatchedOrder.customer.email,
+      customerName: dispatchedOrder.customer.companyName,
+      orderNumber: dispatchedOrder.orderNumber,
+      dispatchNumber: latestDispatch?.dispatchNumber ?? 1,
+      carrier: latestDispatch?.carrier ?? null,
+      isCompleted: dispatchedOrder.fulfillmentStatus === 'COMPLETED',
+      orderUrl: `${env.frontendUrl}/pedidos/${dispatchedOrder.id}`,
+    });
+  } catch {
+    // No bloquear despacho si falla el correo
+  }
+
   return {
     order: serializeOrder(dispatchedOrder, actor),
     message:
@@ -1241,5 +1426,579 @@ export async function cancelOrder(
   return {
     order: serializeOrder(cancelled, actor),
     message: 'Pedido cancelado lógicamente e inventario revertido.',
+  };
+}
+
+export async function listOrderPayments(
+  orderId: string,
+  query: { page?: unknown; pageSize?: unknown },
+  actor: AuthenticatedUser,
+) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { id: true, customerId: true, approvalStatus: true },
+  });
+  if (!order) {
+    throw notFound('Pedido no encontrado.');
+  }
+  if (actor.role === 'CUSTOMER') {
+    if (!actor.customerId || order.customerId !== actor.customerId) {
+      throw forbidden('No tienes permiso para ver los pagos de este pedido.');
+    }
+  }
+
+  const hidePrices =
+    actor.role === 'CUSTOMER' &&
+    (order.approvalStatus as ApprovalStatus) === 'PENDING_CONFIRMATION';
+
+  const { page, pageSize } = parsePaginationQuery(query, 0);
+  const total = await prisma.payment.count({ where: { orderId } });
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
+  const payments = await prisma.payment.findMany({
+    where: { orderId },
+    orderBy: [{ paymentDate: 'desc' }, { createdAt: 'desc' }],
+    include: {
+      registeredBy: { select: { id: true, fullName: true } },
+      voidedBy: { select: { id: true, fullName: true } },
+    },
+    ...prismaPaginationArgs(pagination),
+  });
+
+  return {
+    payments: payments.map((p) => ({
+      ...p,
+      amount: hidePrices ? null : p.amount,
+    })),
+    pagination,
+  };
+}
+
+export async function registerPayment(
+  orderId: string,
+  input: CreatePaymentInput,
+  actor: AuthenticatedUser,
+) {
+  if (actor.role === 'CUSTOMER') {
+    throw forbidden('Solo el personal autorizado puede registrar abonos.');
+  }
+
+  const parsedDate = new Date(input.paymentDate);
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw badRequest('La fecha real del pago no es válida.');
+  }
+  const paymentAmount = roundMoney(input.amount);
+  if (paymentAmount <= 0) {
+    throw badRequest('El monto del abono debe ser mayor a cero.');
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: true,
+        payments: { where: { status: 'ACTIVE' }, select: { amount: true } },
+      },
+    });
+    if (!order) {
+      throw notFound('Pedido no encontrado.');
+    }
+    if (order.approvalStatus !== 'CONFIRMED') {
+      throw badRequest(
+        'Solo puedes registrar abonos en pedidos confirmados y activos.',
+      );
+    }
+
+    const activePaid = roundMoney(
+      order.payments.reduce((acc, p) => acc + p.amount, 0),
+    );
+    const currentPending = roundMoney(
+      Math.max(0, order.totalAmount - activePaid),
+    );
+    if (currentPending <= 0) {
+      throw badRequest('Este pedido ya se encuentra totalmente pagado.');
+    }
+    if (paymentAmount > roundMoney(currentPending + 0.001)) {
+      throw badRequest(
+        `El abono (${paymentAmount.toFixed(2)}) supera el saldo pendiente (${currentPending.toFixed(2)}).`,
+      );
+    }
+
+    const cappedAmount = Math.min(paymentAmount, currentPending);
+
+    await tx.payment.create({
+      data: {
+        orderId: order.id,
+        amount: roundMoney(cappedAmount),
+        method: input.method,
+        paymentDate: parsedDate,
+        reference: input.reference?.trim() || null,
+        receiptImageUrl: input.receiptImageUrl?.trim() || null,
+        notes: input.notes?.trim() || null,
+        status: 'ACTIVE',
+        registeredById: actor.id,
+      },
+    });
+
+    const newAmountPaid = roundMoney(activePaid + cappedAmount);
+    const newAmountPending = roundMoney(
+      Math.max(0, order.totalAmount - newAmountPaid),
+    );
+    const newPaymentStatus = derivePaymentStatus({
+      totalAmount: order.totalAmount,
+      amountPaid: newAmountPaid,
+    });
+
+    return tx.order.update({
+      where: { id: order.id },
+      data: {
+        amountPaid: newAmountPaid,
+        amountPending: newAmountPending,
+        paymentStatus: newPaymentStatus,
+      },
+      include: orderDetailInclude,
+    });
+  });
+
+  try {
+    const curr = updated.currency as Currency;
+    await sendPaymentRegisteredCustomerEmail({
+      to: updated.customer.email,
+      customerName: updated.customer.companyName,
+      orderNumber: updated.orderNumber,
+      amountFormatted: formatCurrency(paymentAmount, curr),
+      methodLabel: PAYMENT_METHOD_LABELS[input.method as PaymentMethod],
+      pendingFormatted: formatCurrency(updated.amountPending, curr),
+      orderUrl: `${env.frontendUrl}/pedidos/${updated.id}`,
+    });
+  } catch {
+    // No bloquear registro del abono si falla el correo
+  }
+
+  return {
+    order: serializeOrder(updated, actor),
+    message:
+      updated.paymentStatus === 'PAID'
+        ? 'Abono registrado. El pedido quedó pagado en su totalidad.'
+        : 'Abono registrado correctamente.',
+  };
+}
+
+export async function voidPayment(
+  orderId: string,
+  paymentId: string,
+  input: VoidPaymentInput,
+  actor: AuthenticatedUser,
+) {
+  if (actor.role === 'CUSTOMER') {
+    throw forbidden('Solo el personal autorizado puede anular pagos.');
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, totalAmount: true, approvalStatus: true },
+    });
+    if (!order) {
+      throw notFound('Pedido no encontrado.');
+    }
+
+    const payment = await tx.payment.findUnique({ where: { id: paymentId } });
+    if (!payment || payment.orderId !== order.id) {
+      throw notFound('Pago no encontrado para este pedido.');
+    }
+    if (payment.status === 'VOIDED') {
+      throw badRequest('Este pago ya fue anulado anteriormente.');
+    }
+
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'VOIDED',
+        voidReason: input.voidReason.trim(),
+        voidedAt: new Date(),
+        voidedById: actor.id,
+      },
+    });
+
+    const activePayments = await tx.payment.findMany({
+      where: { orderId: order.id, status: 'ACTIVE' },
+      select: { amount: true },
+    });
+
+    const newAmountPaid = roundMoney(
+      activePayments.reduce((acc, p) => acc + p.amount, 0),
+    );
+    const newAmountPending = roundMoney(
+      Math.max(0, order.totalAmount - newAmountPaid),
+    );
+    const newPaymentStatus = derivePaymentStatus({
+      totalAmount: order.totalAmount,
+      amountPaid: newAmountPaid,
+    });
+
+    return tx.order.update({
+      where: { id: order.id },
+      data: {
+        amountPaid: newAmountPaid,
+        amountPending: newAmountPending,
+        paymentStatus: newPaymentStatus,
+      },
+      include: orderDetailInclude,
+    });
+  });
+
+  return {
+    order: serializeOrder(updated, actor),
+    message: 'Abono anulado correctamente y saldo del pedido recalculado.',
+  };
+}
+
+export async function createConsignmentReturn(
+  orderId: string,
+  input: CreateConsignmentReturnInput,
+  actor: AuthenticatedUser,
+) {
+  if (actor.role === 'CUSTOMER') {
+    throw forbidden(
+      'Solo el personal autorizado puede registrar devoluciones de consignación.',
+    );
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        consignmentReturns: {
+          orderBy: [{ returnNumber: 'desc' }],
+          take: 1,
+          select: { returnNumber: true },
+        },
+      },
+    });
+    if (!order) {
+      throw notFound('Pedido no encontrado.');
+    }
+    if (order.type !== 'CONSIGNMENT') {
+      throw badRequest(
+        'Las devoluciones de consignación solo aplican a pedidos de tipo Consignación.',
+      );
+    }
+    if (order.approvalStatus !== 'CONFIRMED') {
+      throw badRequest(
+        'El pedido en consignación debe estar confirmado para registrar devoluciones.',
+      );
+    }
+
+    const itemMap = new Map(order.items.map((i) => [i.id, i]));
+    const seen = new Set<string>();
+    const returnItemsData: Array<{
+      orderItemId: string;
+      quantityReturned: number;
+      unitCredit: number;
+      lineCredit: number;
+    }> = [];
+
+    let totalCredit = 0;
+
+    for (const entry of input.items) {
+      if (seen.has(entry.orderItemId)) {
+        throw badRequest('No envíes el mismo ítem duplicado en la devolución.');
+      }
+      seen.add(entry.orderItemId);
+
+      const orderItem = itemMap.get(entry.orderItemId);
+      if (!orderItem) {
+        throw badRequest('Uno de los ítems indicados no pertenece al pedido.');
+      }
+
+      const maxReturnable = Math.max(
+        0,
+        orderItem.quantityDispatched - orderItem.quantityReturned,
+      );
+      if (entry.quantityReturned > maxReturnable) {
+        throw badRequest(
+          `Solo hay ${maxReturnable} unidades entregadas disponibles para devolver de "${orderItem.productName}".`,
+        );
+      }
+
+      const unitCredit =
+        orderItem.quantityOrdered > 0
+          ? roundMoney(orderItem.lineTotal / orderItem.quantityOrdered)
+          : roundMoney(orderItem.unitPrice);
+
+      const rawCredit =
+        orderItem.quantityReturned === 0 &&
+        entry.quantityReturned === orderItem.quantityOrdered
+          ? roundMoney(orderItem.lineTotal)
+          : roundMoney(entry.quantityReturned * unitCredit);
+
+      totalCredit = roundMoney(totalCredit + rawCredit);
+      returnItemsData.push({
+        orderItemId: orderItem.id,
+        quantityReturned: entry.quantityReturned,
+        unitCredit,
+        lineCredit: rawCredit,
+      });
+
+      await tx.orderItem.update({
+        where: { id: orderItem.id },
+        data: {
+          quantityReturned: orderItem.quantityReturned + entry.quantityReturned,
+        },
+      });
+
+      const product = await tx.product.findUnique({
+        where: { id: orderItem.productId },
+        select: { id: true, stock: true },
+      });
+      if (product) {
+        const previousStock = product.stock;
+        const newStock = previousStock + entry.quantityReturned;
+
+        await tx.product.update({
+          where: { id: product.id },
+          data: { stock: newStock },
+        });
+
+        await tx.stockMovement.create({
+          data: {
+            productId: product.id,
+            type: 'CONSIGNMENT_RETURN',
+            quantityDelta: entry.quantityReturned,
+            previousStock,
+            newStock,
+            reason: `Devolución de consignación ${order.orderNumber}`,
+            reference: order.orderNumber,
+            performedById: actor.id,
+          },
+        });
+      }
+    }
+
+    const nextReturnNumber = (order.consignmentReturns[0]?.returnNumber ?? 0) + 1;
+    const maxAllowedTotalCredit = roundMoney(
+      Math.max(
+        0,
+        order.subtotal -
+          order.itemsDiscountTotal +
+          order.shippingCost -
+          order.shippingDiscount -
+          order.returnedTotal,
+      ),
+    );
+    const boundedCredit = Math.min(totalCredit, maxAllowedTotalCredit);
+    const newReturnedTotal = roundMoney(order.returnedTotal + boundedCredit);
+    const newTotalAmount = roundMoney(
+      Math.max(
+        0,
+        order.subtotal -
+          order.itemsDiscountTotal +
+          order.shippingCost -
+          order.shippingDiscount -
+          newReturnedTotal,
+      ),
+    );
+    const newAmountPending = roundMoney(
+      Math.max(0, newTotalAmount - order.amountPaid),
+    );
+    const newPaymentStatus = derivePaymentStatus({
+      totalAmount: newTotalAmount,
+      amountPaid: order.amountPaid,
+    });
+
+    await tx.consignmentReturn.create({
+      data: {
+        orderId: order.id,
+        returnNumber: nextReturnNumber,
+        notes: input.notes?.trim() || null,
+        totalCredit: boundedCredit,
+        receivedById: actor.id,
+        items: { create: returnItemsData },
+      },
+    });
+
+    return tx.order.update({
+      where: { id: order.id },
+      data: {
+        returnedTotal: newReturnedTotal,
+        totalAmount: newTotalAmount,
+        amountPending: newAmountPending,
+        paymentStatus: newPaymentStatus,
+      },
+      include: orderDetailInclude,
+    });
+  });
+
+  return {
+    order: serializeOrder(updated, actor),
+    message:
+      'Devolución de consignación registrada. Inventario y saldo pendiente actualizados.',
+  };
+}
+
+export async function listConsignmentsOverview(
+  query: {
+    search?: string;
+    country?: string;
+    status?: string;
+    page?: unknown;
+    pageSize?: unknown;
+  },
+  actor: AuthenticatedUser,
+) {
+  const { page, pageSize } = parsePaginationQuery(query);
+  const where: Record<string, unknown> = {
+    type: 'CONSIGNMENT',
+    approvalStatus: 'CONFIRMED',
+  };
+
+  if (actor.role === 'CUSTOMER') {
+    if (!actor.customerId) {
+      return {
+        orders: [],
+        byCustomer: [],
+        pagination: buildPaginationMeta(0, page, pageSize),
+      };
+    }
+    where.customerId = actor.customerId;
+  }
+
+  if (query.country && query.country !== 'ALL') {
+    where.customer = { country: query.country };
+  }
+
+  const term = query.search?.trim();
+  if (term) {
+    where.OR = [
+      { orderNumber: containsFilter(term) },
+      { customer: { companyName: containsFilter(term) } },
+      { customer: { taxId: containsFilter(term) } },
+      { items: { some: { productName: containsFilter(term) } } },
+    ];
+  }
+
+  const allMatching = await prisma.order.findMany({
+    where,
+    include: orderDetailInclude,
+    orderBy: [{ consignmentDueDate: 'asc' }, { createdAt: 'desc' }],
+  });
+
+  const nowMs = Date.now();
+  const statusFiltered = allMatching.filter((o) => {
+    if (query.status === 'OVERDUE') {
+      return (
+        Boolean(o.consignmentDueDate) &&
+        o.consignmentDueDate!.getTime() < nowMs &&
+        o.amountPending > 0
+      );
+    }
+    if (query.status === 'UPCOMING') {
+      if (!o.consignmentDueDate || o.amountPending <= 0) return false;
+      const diffDays =
+        (o.consignmentDueDate.getTime() - nowMs) / (1000 * 60 * 60 * 24);
+      return diffDays >= 0 && diffDays <= 30;
+    }
+    return true;
+  });
+
+  const customerSummaryMap = new Map<
+    string,
+    {
+      customerId: string;
+      companyName: string;
+      country: CountryCode;
+      countryLabel: string;
+      currency: Currency;
+      ordersCount: number;
+      unitsOrdered: number;
+      unitsDispatched: number;
+      unitsReturned: number;
+      unitsNetInStore: number;
+      grossTotal: number;
+      returnedCredit: number;
+      netTotal: number;
+      amountPaid: number;
+      amountPending: number;
+      nearestDueDate: Date | null;
+    }
+  >();
+
+  for (const order of statusFiltered) {
+    const country = (
+      (COUNTRIES as readonly string[]).includes(order.customer.country)
+        ? order.customer.country
+        : 'OTHER'
+    ) as CountryCode;
+
+    const existing = customerSummaryMap.get(order.customerId) ?? {
+      customerId: order.customerId,
+      companyName: order.customer.companyName,
+      country,
+      countryLabel: COUNTRY_LABELS[country],
+      currency: order.currency as Currency,
+      ordersCount: 0,
+      unitsOrdered: 0,
+      unitsDispatched: 0,
+      unitsReturned: 0,
+      unitsNetInStore: 0,
+      grossTotal: 0,
+      returnedCredit: 0,
+      netTotal: 0,
+      amountPaid: 0,
+      amountPending: 0,
+      nearestDueDate: null,
+    };
+
+    existing.ordersCount += 1;
+    for (const item of order.items) {
+      existing.unitsOrdered += item.quantityOrdered;
+      existing.unitsDispatched += item.quantityDispatched;
+      existing.unitsReturned += item.quantityReturned;
+      existing.unitsNetInStore += Math.max(
+        0,
+        item.quantityDispatched - item.quantityReturned,
+      );
+    }
+
+    existing.grossTotal = roundMoney(existing.grossTotal + order.subtotal);
+    existing.returnedCredit = roundMoney(
+      existing.returnedCredit + order.returnedTotal,
+    );
+    existing.netTotal = roundMoney(existing.netTotal + order.totalAmount);
+    existing.amountPaid = roundMoney(existing.amountPaid + order.amountPaid);
+    existing.amountPending = roundMoney(
+      existing.amountPending + order.amountPending,
+    );
+
+    if (order.consignmentDueDate && order.amountPending > 0) {
+      if (
+        !existing.nearestDueDate ||
+        order.consignmentDueDate.getTime() < existing.nearestDueDate.getTime()
+      ) {
+        existing.nearestDueDate = order.consignmentDueDate;
+      }
+    }
+
+    customerSummaryMap.set(order.customerId, existing);
+  }
+
+  const total = statusFiltered.length;
+  const pagination = buildPaginationMeta(total, page, pageSize);
+  const sliced =
+    pagination.pageSize === 0
+      ? statusFiltered
+      : statusFiltered.slice(
+          (pagination.page - 1) * pagination.pageSize,
+          pagination.page * pagination.pageSize,
+        );
+
+  return {
+    orders: sliced.map((order) => serializeOrder(order, actor)),
+    byCustomer: Array.from(customerSummaryMap.values()).sort((a, b) =>
+      a.companyName.localeCompare(b.companyName),
+    ),
+    pagination,
   };
 }

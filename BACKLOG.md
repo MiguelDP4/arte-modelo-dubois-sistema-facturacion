@@ -59,14 +59,14 @@
 ### Fase 5 — Pagos, Consignación Automatizada, Correos y Excel (`.xlsx`)
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F5-01` | Modelo `Payment` (`CASH`, `TRANSFER`, `CHECK`, fecha, comprobante, foto opcional) y endpoint de registro + anulación/corrección | `feature/F5-01-payments-module` | `Por Hacer` | Anular pago recalcula `amountPaid`/`amountPending`/`paymentStatus` manteniendo auditoría; UI sin `alert()`. |
-| `F5-02` | Módulo de Consignación (`ConsignmentReturn`, fecha de revisión, devolución a stock y vista de mercadería en consignación por cliente) | `feature/F5-02-consignment-module` | `Por Hacer` | Devoluciones reingresan stock y reducen deuda; reporte de consignaciones activas. |
-| `F5-03` | Generador de documentos **Excel (`.xlsx`)** con logo en esquina superior izquierda (Factura, Recibo Consignación, Entrega Parcial/Total) | `feature/F5-03-excel-export` | `Por Hacer` | Descarga de `.xlsx` validada por tests (contenido, columnas pedido/entregado/pendiente, logo incrustado). |
-| `F5-04` | Notificaciones automáticas por correo (Resend): pedido cliente pendiente, pedido confirmado, despacho y pago registrado | `feature/F5-04-email-notifications` | `Por Hacer` | Plantillas HTML limpias y tests unitarios con mock + verificación de disparo por evento. |
+| `F5-01` | Modelo `Payment` (`CASH`, `TRANSFER`, `CHECK`, fecha, comprobante, foto opcional) y endpoint de registro + anulación/corrección | `feature/F5-F6-payments-consignment-excel-dashboard` | `Hecho` | Anular pago recalcula `amountPaid`/`amountPending`/`paymentStatus` manteniendo auditoría; UI sin `alert()`. |
+| `F5-02` | Módulo de Consignación (`ConsignmentReturn`, fecha de revisión, devolución a stock y vista de mercadería en consignación por cliente) | `feature/F5-F6-payments-consignment-excel-dashboard` | `Hecho` | Devoluciones reingresan stock y reducen deuda; reporte de consignaciones activas. |
+| `F5-03` | Generador de documentos **Excel (`.xlsx`)** con logo en esquina superior izquierda (Factura, Recibo Consignación, Entrega Parcial/Total) | `feature/F5-F6-payments-consignment-excel-dashboard` | `Hecho` | Descarga de `.xlsx` validada por tests (contenido, columnas pedido/entregado/pendiente, logo incrustado). |
+| `F5-04` | Notificaciones automáticas por correo (Resend): pedido cliente pendiente, pedido confirmado, despacho y pago registrado | `feature/F5-F6-payments-consignment-excel-dashboard` | `Hecho` | Plantillas HTML limpias y tests unitarios con mock + verificación de disparo por evento. |
 
 ### Fase 6 — Dashboard, E2E Completo, Demo Staging y Producción
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F6-01` | Dashboard inicial (`/`) por rol: pedidos pendientes/por confirmar, cuentas por cobrar por moneda, consignaciones por vencer y stock bajo | `feature/F6-01-dashboard-kpis` | `Por Hacer` | Métricas exactas multimoneda, vista Mobile-First, tests unitarios y Playwright. |
-| `F6-02` | Seed realista de demostración para `development` (Staging) y suite E2E integral (Desktop + Mobile) | `feature/F6-02-staging-seed-e2e` | `Por Hacer` | 100% suites pasando (Vitest >85%, integración y Playwright E2E), `DOCUMENTATION.md` y `CHANGELOG.md` completos. |
+| `F6-01` | Dashboard inicial (`/`) por rol: pedidos pendientes/por confirmar, cuentas por cobrar por moneda, consignaciones por vencer y stock bajo | `feature/F5-F6-payments-consignment-excel-dashboard` | `Hecho` | Métricas exactas multimoneda, vista Mobile-First, tests unitarios y Playwright. |
+| `F6-02` | Seed realista de demostración para `development` (Staging) y suite E2E integral (Desktop + Mobile) | `feature/F5-F6-payments-consignment-excel-dashboard` | `Hecho` | 100% suites pasando (Vitest >85%, integración y Playwright E2E), `DOCUMENTATION.md` y `CHANGELOG.md` completos. |
 | `F6-03` | Despliegue Staging (`development`) para demo con el papá de Miguel -> ajustes -> Release a Producción (`main`) | `release/v2.0.0` | `Por Hacer` | Aprobación explícita de Miguel para merge a `main` y base de producción limpia lista para operar. |

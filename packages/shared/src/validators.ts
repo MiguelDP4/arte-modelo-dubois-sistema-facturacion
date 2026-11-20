@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { COUNTRIES, DISCOUNT_TYPES, ORDER_TYPES, ROLES } from './constants';
+import {
+  COUNTRIES,
+  DISCOUNT_TYPES,
+  ORDER_TYPES,
+  PAYMENT_METHODS,
+  ROLES,
+} from './constants';
 import { PERMISSION_CODES } from './permissions';
 
 export const passwordSchema = z
@@ -458,6 +464,65 @@ export const cancelOrderSchema = z.object({
     .max(500, 'El motivo de cancelación no puede superar 500 caracteres.'),
 });
 
+export const createPaymentSchema = z.object({
+  amount: z
+    .number()
+    .positive('El monto del abono debe ser mayor a cero.')
+    .max(9999999.99, 'El monto del abono supera el límite permitido.'),
+  method: z.enum(PAYMENT_METHODS),
+  paymentDate: z
+    .string()
+    .trim()
+    .min(4, 'Ingresa una fecha de pago válida.')
+    .max(40, 'La fecha de pago no es válida.'),
+  reference: z
+    .string()
+    .trim()
+    .max(120, 'La referencia o número de boleta no puede superar 120 caracteres.')
+    .nullable()
+    .optional(),
+  receiptImageUrl: z
+    .string()
+    .trim()
+    .max(500, 'La URL del comprobante es demasiado larga.')
+    .nullable()
+    .optional(),
+  notes: z
+    .string()
+    .trim()
+    .max(500, 'Las notas no pueden superar 500 caracteres.')
+    .nullable()
+    .optional(),
+});
+
+export const voidPaymentSchema = z.object({
+  voidReason: z
+    .string()
+    .trim()
+    .min(3, 'Indica el motivo de anulación del pago (mínimo 3 caracteres).')
+    .max(500, 'El motivo de anulación no puede superar 500 caracteres.'),
+});
+
+export const createConsignmentReturnSchema = z.object({
+  notes: z
+    .string()
+    .trim()
+    .max(500, 'Las notas no pueden superar 500 caracteres.')
+    .nullable()
+    .optional(),
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.string().trim().min(1, 'Ítem inválido.'),
+        quantityReturned: z
+          .number()
+          .int('La cantidad devuelta debe ser un entero.')
+          .min(1, 'Debes devolver al menos 1 unidad del ítem.'),
+      }),
+    )
+    .min(1, 'Debes seleccionar al menos un ítem para devolver.'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
@@ -479,3 +544,8 @@ export type ConfirmOrderInput = z.infer<typeof confirmOrderSchema>;
 export type PackOrderInput = z.infer<typeof packOrderSchema>;
 export type CreateDispatchInput = z.infer<typeof createDispatchSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
+export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
+export type VoidPaymentInput = z.infer<typeof voidPaymentSchema>;
+export type CreateConsignmentReturnInput = z.infer<
+  typeof createConsignmentReturnSchema
+>;

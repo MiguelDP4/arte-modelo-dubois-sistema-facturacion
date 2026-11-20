@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import * as excelService from '../services/excel.service';
 import * as orderService from '../services/order.service';
 
 export async function list(req: Request, res: Response, next: NextFunction) {
@@ -145,6 +146,128 @@ export async function cancel(req: Request, res: Response, next: NextFunction) {
       req.user!,
     );
     res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listConsignments(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await orderService.listConsignmentsOverview(
+      {
+        search:
+          typeof req.query.search === 'string' ? req.query.search : undefined,
+        country:
+          typeof req.query.country === 'string' ? req.query.country : undefined,
+        status:
+          typeof req.query.status === 'string' ? req.query.status : undefined,
+        page: req.query.page,
+        pageSize: req.query.pageSize,
+      },
+      req.user!,
+    );
+    res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listPayments(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await orderService.listOrderPayments(
+      String(req.params.id),
+      { page: req.query.page, pageSize: req.query.pageSize },
+      req.user!,
+    );
+    res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addPayment(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await orderService.registerPayment(
+      String(req.params.id),
+      req.body,
+      req.user!,
+    );
+    res.status(201).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function voidPayment(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await orderService.voidPayment(
+      String(req.params.id),
+      String(req.params.paymentId),
+      req.body,
+      req.user!,
+    );
+    res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addConsignmentReturn(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await orderService.createConsignmentReturn(
+      String(req.params.id),
+      req.body,
+      req.user!,
+    );
+    res.status(201).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadExcel(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { buffer, fileName } = await excelService.generateOrderExcel(
+      String(req.params.id),
+      {
+        type: typeof req.query.type === 'string' ? req.query.type : undefined,
+        dispatchId:
+          typeof req.query.dispatchId === 'string'
+            ? req.query.dispatchId
+            : undefined,
+      },
+      req.user!,
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.status(200).send(buffer);
   } catch (err) {
     next(err);
   }

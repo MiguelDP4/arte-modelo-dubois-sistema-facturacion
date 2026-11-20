@@ -169,3 +169,158 @@ export async function sendInvitationEmail(params: {
 
   return inviteUrl;
 }
+
+function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export async function sendCustomerOrderPendingStaffEmail(params: {
+  to: string;
+  orderNumber: string;
+  customerName: string;
+  itemsCount: number;
+  orderUrl: string;
+}): Promise<void> {
+  const safeCustomer = escapeHtml(params.customerName);
+  const safeNum = escapeHtml(params.orderNumber);
+  const html = buildEmailLayout(
+    `Nuevo pedido de cliente pendiente: ${safeNum}`,
+    `<p>El cliente <strong>${safeCustomer}</strong> registró el pedido <strong>${safeNum}</strong> con <strong>${params.itemsCount}</strong> línea(s) pendiente de confirmación.</p>
+     <p style="margin:24px 0;">
+       <a href="${params.orderUrl}" style="display:inline-block;background:#110b51;color:#ffffff;padding:12px 24px;text-decoration:none;font-weight:bold;">
+         Revisar y confirmar pedido
+       </a>
+     </p>`,
+  );
+
+  await sendEmail({
+    to: params.to,
+    subject: `Nuevo pedido pendiente de confirmar: ${params.orderNumber}`,
+    html,
+    text: `El cliente ${params.customerName} registró el pedido ${params.orderNumber} (${params.itemsCount} líneas). Revísalo en: ${params.orderUrl}`,
+    meta: {
+      type: 'order_pending_staff',
+      orderNumber: params.orderNumber,
+      url: params.orderUrl,
+    },
+  });
+}
+
+export async function sendOrderConfirmedCustomerEmail(params: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  totalFormatted: string;
+  orderUrl: string;
+}): Promise<void> {
+  const safeCustomer = escapeHtml(params.customerName);
+  const safeNum = escapeHtml(params.orderNumber);
+  const safeTotal = escapeHtml(params.totalFormatted);
+  const html = buildEmailLayout(
+    `Pedido ${safeNum} confirmado`,
+    `<p>Hola <strong>${safeCustomer}</strong>,</p>
+     <p>Tu pedido <strong>${safeNum}</strong> ha sido confirmado por un total de <strong>${safeTotal}</strong> y pasó a preparación.</p>
+     <p style="margin:24px 0;">
+       <a href="${params.orderUrl}" style="display:inline-block;background:#110b51;color:#ffffff;padding:12px 24px;text-decoration:none;font-weight:bold;">
+         Ver detalle del pedido
+       </a>
+     </p>`,
+  );
+
+  await sendEmail({
+    to: params.to,
+    subject: `Pedido ${params.orderNumber} confirmado — Arte Modelo Dubois`,
+    html,
+    text: `Hola ${params.customerName}, tu pedido ${params.orderNumber} ha sido confirmado por ${params.totalFormatted}. Detalle: ${params.orderUrl}`,
+    meta: {
+      type: 'order_confirmed',
+      orderNumber: params.orderNumber,
+      url: params.orderUrl,
+    },
+  });
+}
+
+export async function sendOrderDispatchedCustomerEmail(params: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  dispatchNumber: number;
+  carrier: string | null;
+  isCompleted: boolean;
+  orderUrl: string;
+}): Promise<void> {
+  const safeCustomer = escapeHtml(params.customerName);
+  const safeNum = escapeHtml(params.orderNumber);
+  const carrierText = params.carrier
+    ? ` vía <strong>${escapeHtml(params.carrier)}</strong>`
+    : '';
+  const statusLabel = params.isCompleted
+    ? 'entrega total completada'
+    : 'despacho parcial registrado';
+  const html = buildEmailLayout(
+    `Despacho #${params.dispatchNumber} — Pedido ${safeNum}`,
+    `<p>Hola <strong>${safeCustomer}</strong>,</p>
+     <p>Registramos el despacho <strong>#${params.dispatchNumber}</strong> (${statusLabel})${carrierText} para tu pedido <strong>${safeNum}</strong>.</p>
+     <p style="margin:24px 0;">
+       <a href="${params.orderUrl}" style="display:inline-block;background:#110b51;color:#ffffff;padding:12px 24px;text-decoration:none;font-weight:bold;">
+         Consultar nota de entrega
+       </a>
+     </p>`,
+  );
+
+  await sendEmail({
+    to: params.to,
+    subject: `Despacho #${params.dispatchNumber} registrado (${params.orderNumber})`,
+    html,
+    text: `Hola ${params.customerName}, registramos el despacho #${params.dispatchNumber} (${statusLabel}) de tu pedido ${params.orderNumber}. Ver: ${params.orderUrl}`,
+    meta: {
+      type: 'order_dispatched',
+      orderNumber: params.orderNumber,
+      url: params.orderUrl,
+    },
+  });
+}
+
+export async function sendPaymentRegisteredCustomerEmail(params: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  amountFormatted: string;
+  methodLabel: string;
+  pendingFormatted: string;
+  orderUrl: string;
+}): Promise<void> {
+  const safeCustomer = escapeHtml(params.customerName);
+  const safeNum = escapeHtml(params.orderNumber);
+  const safeAmount = escapeHtml(params.amountFormatted);
+  const safePending = escapeHtml(params.pendingFormatted);
+  const safeMethod = escapeHtml(params.methodLabel);
+  const html = buildEmailLayout(
+    `Abono registrado — Pedido ${safeNum}`,
+    `<p>Hola <strong>${safeCustomer}</strong>,</p>
+     <p>Registramos un abono de <strong>${safeAmount}</strong> (${safeMethod}) aplicado a tu pedido <strong>${safeNum}</strong>.</p>
+     <p>Saldo pendiente actualizado: <strong>${safePending}</strong>.</p>
+     <p style="margin:24px 0;">
+       <a href="${params.orderUrl}" style="display:inline-block;background:#110b51;color:#ffffff;padding:12px 24px;text-decoration:none;font-weight:bold;">
+         Ver historial de pagos
+       </a>
+     </p>`,
+  );
+
+  await sendEmail({
+    to: params.to,
+    subject: `Abono registrado en pedido ${params.orderNumber} — Arte Modelo Dubois`,
+    html,
+    text: `Hola ${params.customerName}, registramos un abono de ${params.amountFormatted} (${params.methodLabel}) para tu pedido ${params.orderNumber}. Saldo pendiente: ${params.pendingFormatted}.`,
+    meta: {
+      type: 'payment_registered',
+      orderNumber: params.orderNumber,
+      url: params.orderUrl,
+    },
+  });
+}

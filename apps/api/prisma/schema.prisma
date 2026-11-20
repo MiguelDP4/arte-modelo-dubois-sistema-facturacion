@@ -8,31 +8,34 @@ datasource db {
 }
 
 model User {
-  id                         String         @id @default(cuid())
-  email                      String         @unique
+  id                         String              @id @default(cuid())
+  email                      String              @unique
   passwordHash               String?
   fullName                   String
   phone                      String?
-  role                       String         @default("CUSTOMER") // ADMIN | EMPLOYEE | CUSTOMER
-  isActive                   Boolean        @default(true)
-  isVerified                 Boolean        @default(false)
-  verificationTokenHash      String?        @unique
+  role                       String              @default("CUSTOMER") // ADMIN | EMPLOYEE | CUSTOMER
+  isActive                   Boolean             @default(true)
+  isVerified                 Boolean             @default(false)
+  verificationTokenHash      String?             @unique
   verificationTokenExpiresAt DateTime?
-  invitationTokenHash        String?        @unique
+  invitationTokenHash        String?             @unique
   invitationExpiresAt        DateTime?
   invitedById                String?
-  invitedBy                  User?          @relation("UserInvitations", fields: [invitedById], references: [id], onDelete: SetNull)
-  invitedUsers               User[]          @relation("UserInvitations")
+  invitedBy                  User?               @relation("UserInvitations", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitedUsers               User[]              @relation("UserInvitations")
   customerId                 String?
-  customer                   Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customer                   Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   refreshTokens              RefreshToken[]
-  stockMovements             StockMovement[] @relation("StockMovementActor")
-  createdOrders              Order[]         @relation("OrderCreator")
-  confirmedOrders            Order[]         @relation("OrderConfirmer")
-  cancelledOrders            Order[]         @relation("OrderCanceller")
-  dispatchEvents             DispatchEvent[] @relation("DispatchActor")
-  createdAt                  DateTime        @default(now())
-  updatedAt                  DateTime        @updatedAt
+  stockMovements             StockMovement[]     @relation("StockMovementActor")
+  createdOrders              Order[]             @relation("OrderCreator")
+  confirmedOrders            Order[]             @relation("OrderConfirmer")
+  cancelledOrders            Order[]             @relation("OrderCanceller")
+  dispatchEvents             DispatchEvent[]     @relation("DispatchActor")
+  registeredPayments         Payment[]           @relation("PaymentCreator")
+  voidedPayments             Payment[]           @relation("PaymentVoider")
+  consignmentReturns         ConsignmentReturn[] @relation("ConsignmentReturnActor")
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
 
   @@index([role])
   @@index([isActive])
@@ -162,37 +165,40 @@ model Customer {
 }
 
 model Order {
-  id                 String          @id @default(cuid())
-  orderNumber        String          @unique
+  id                 String              @id @default(cuid())
+  orderNumber        String              @unique
   customerId         String
-  customer           Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  type               String          @default("REGULAR") // REGULAR | CONSIGNMENT
-  approvalStatus     String          @default("CONFIRMED") // PENDING_CONFIRMATION | CONFIRMED | CANCELLED
-  fulfillmentStatus  String          @default("PENDING_PACKING") // PENDING_PACKING | PACKING | READY_TO_DISPATCH | PARTIALLY_DISPATCHED | COMPLETED
-  paymentStatus      String          @default("PENDING_PAYMENT") // PENDING_PAYMENT | PARTIALLY_PAID | PAID
-  currency           String          @default("GTQ")
-  subtotal           Float           @default(0)
-  itemsDiscountTotal Float           @default(0)
-  shippingCost       Float           @default(0)
-  shippingDiscount   Float           @default(0)
-  totalAmount        Float           @default(0)
-  amountPaid         Float           @default(0)
-  amountPending      Float           @default(0)
+  customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  type               String              @default("REGULAR") // REGULAR | CONSIGNMENT
+  approvalStatus     String              @default("CONFIRMED") // PENDING_CONFIRMATION | CONFIRMED | CANCELLED
+  fulfillmentStatus  String              @default("PENDING_PACKING") // PENDING_PACKING | PACKING | READY_TO_DISPATCH | PARTIALLY_DISPATCHED | COMPLETED
+  paymentStatus      String              @default("PENDING_PAYMENT") // PENDING_PAYMENT | PARTIALLY_PAID | PAID
+  currency           String              @default("GTQ")
+  subtotal           Float               @default(0)
+  itemsDiscountTotal Float               @default(0)
+  shippingCost       Float               @default(0)
+  shippingDiscount   Float               @default(0)
+  returnedTotal      Float               @default(0)
+  totalAmount        Float               @default(0)
+  amountPaid         Float               @default(0)
+  amountPending      Float               @default(0)
   consignmentDueDate DateTime?
   notes              String?
   createdById        String?
-  createdBy          User?           @relation("OrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy          User?               @relation("OrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
   confirmedById      String?
-  confirmedBy        User?           @relation("OrderConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedBy        User?               @relation("OrderConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
   confirmedAt        DateTime?
   cancelledById      String?
-  cancelledBy        User?           @relation("OrderCanceller", fields: [cancelledById], references: [id], onDelete: SetNull)
+  cancelledBy        User?               @relation("OrderCanceller", fields: [cancelledById], references: [id], onDelete: SetNull)
   cancelledAt        DateTime?
   cancelReason       String?
   items              OrderItem[]
   dispatches         DispatchEvent[]
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  payments           Payment[]
+  consignmentReturns ConsignmentReturn[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([customerId, createdAt])
   @@index([approvalStatus])
@@ -202,24 +208,26 @@ model Order {
 }
 
 model OrderItem {
-  id                 String              @id @default(cuid())
-  orderId            String
-  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId          String
-  product            Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productName        String
-  productPrimaryCode String
-  quantityOrdered    Int
-  quantityPacked     Int                 @default(0)
-  quantityDispatched Int                 @default(0)
-  unitPrice          Float               @default(0)
-  discountType       String              @default("FIXED") // FIXED | PERCENT
-  discountValue      Float               @default(0)
-  discountAmount     Float               @default(0)
-  lineTotal          Float               @default(0)
-  dispatchItems      DispatchEventItem[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id                     String                  @id @default(cuid())
+  orderId                String
+  order                  Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId              String
+  product                Product                 @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productName            String
+  productPrimaryCode     String
+  quantityOrdered        Int
+  quantityPacked         Int                     @default(0)
+  quantityDispatched     Int                     @default(0)
+  quantityReturned       Int                     @default(0)
+  unitPrice              Float                   @default(0)
+  discountType           String                  @default("FIXED") // FIXED | PERCENT
+  discountValue          Float                   @default(0)
+  discountAmount         Float                   @default(0)
+  lineTotal              Float                   @default(0)
+  dispatchItems          DispatchEventItem[]
+  consignmentReturnItems ConsignmentReturnItem[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 
   @@unique([orderId, productId])
   @@index([orderId])
@@ -254,5 +262,60 @@ model DispatchEventItem {
   remainingPending     Int
 
   @@unique([dispatchEventId, orderItemId])
+  @@index([orderItemId])
+}
+
+model Payment {
+  id              String    @id @default(cuid())
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount          Float
+  method          String // CASH | TRANSFER | CHECK
+  paymentDate     DateTime
+  reference       String?
+  receiptImageUrl String?
+  notes           String?
+  status          String    @default("ACTIVE") // ACTIVE | VOIDED
+  voidReason      String?
+  voidedAt        DateTime?
+  registeredById  String?
+  registeredBy    User?     @relation("PaymentCreator", fields: [registeredById], references: [id], onDelete: SetNull)
+  voidedById      String?
+  voidedBy        User?     @relation("PaymentVoider", fields: [voidedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orderId, paymentDate])
+  @@index([status])
+}
+
+model ConsignmentReturn {
+  id           String                  @id @default(cuid())
+  orderId      String
+  order        Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  returnNumber Int
+  returnedAt   DateTime                @default(now())
+  notes        String?
+  totalCredit  Float                   @default(0)
+  receivedById String?
+  receivedBy   User?                   @relation("ConsignmentReturnActor", fields: [receivedById], references: [id], onDelete: SetNull)
+  items        ConsignmentReturnItem[]
+  createdAt    DateTime                @default(now())
+
+  @@unique([orderId, returnNumber])
+  @@index([orderId, returnedAt])
+}
+
+model ConsignmentReturnItem {
+  id                  String            @id @default(cuid())
+  consignmentReturnId String
+  consignmentReturn   ConsignmentReturn @relation(fields: [consignmentReturnId], references: [id], onDelete: Cascade)
+  orderItemId         String
+  orderItem           OrderItem         @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  quantityReturned    Int
+  unitCredit          Float
+  lineCredit          Float
+
+  @@unique([consignmentReturnId, orderItemId])
   @@index([orderItemId])
 }

@@ -37,6 +37,158 @@
   }
 }
 
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.customerKpiGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.kpiCard {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  span {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  strong {
+    font-size: 1.55rem;
+    color: var(--text-brand-emphasis);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  small {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.panelCard {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.06rem;
+    color: var(--text-primary);
+  }
+}
+
+.inlineLink {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-brand-emphasis);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.alertList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alertRow {
+  background-color: var(--background-surface);
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alertMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+}
+
+.alertRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+
+  strong {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.overduePill {
+  padding: 2px 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.stockLowPill {
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -72,31 +224,7 @@
   }
 }
 
-.statValue {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-brand-emphasis);
-}
-
 .cardAction {
   @include button-primary;
   align-self: flex-start;
-}
-
-.infoBanner {
-  @include card-surface;
-  background-color: var(--background-surface);
-
-  h3 {
-    margin: 0 0 6px;
-    font-size: 1rem;
-    color: var(--text-primary);
-  }
-
-  p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.92rem;
-    line-height: 1.5;
-  }
 }

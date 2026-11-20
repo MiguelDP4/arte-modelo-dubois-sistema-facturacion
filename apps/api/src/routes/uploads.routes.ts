@@ -14,3 +14,10 @@ uploadsRouter.post(
   validateBody(uploadImageSchema),
   uploadsController.uploadProductImage,
 );
+uploadsRouter.post(
+  '/payment-receipt',
+  requireAuth,
+  requirePermission('payments.manage'),
+  validateBody(uploadImageSchema),
+  uploadsController.uploadProductImage,
+);

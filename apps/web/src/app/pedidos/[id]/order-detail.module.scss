@@ -275,3 +275,69 @@
   font-size: 0.84rem;
   font-weight: 700;
 }
+
+.sectionTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paymentMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusChipActive {
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.statusChipVoided {
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.voidBtn {
+  @include button-danger;
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+}
+
+.receiptThumb {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--background-surface);
+}
+
+.uploadRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.voidNotice {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.excelActionsGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

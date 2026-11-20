@@ -9,7 +9,13 @@ import {
   FULFILLMENT_STATUS_LABELS,
   ORDER_TYPE_LABELS,
   PAGE_SIZE_OPTIONS,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_RECORD_STATUSES,
+  PAYMENT_RECORD_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
+  EXCEL_DOCUMENT_LABELS,
+  EXCEL_DOCUMENT_TYPES,
   PRODUCT_CODE_LABELS,
   SEARCH_DEBOUNCE_MS,
   STOCK_MOVEMENT_LABELS,
@@ -18,6 +24,7 @@ import {
   calculateOrderLine,
   calculateOrderTotals,
   deriveFulfillmentStatus,
+  derivePaymentStatus,
   formatCurrency,
   isPermissionCode,
   LOCKED_ADMIN_PERMISSIONS,
@@ -44,6 +51,9 @@ import {
   packOrderSchema,
   createDispatchSchema,
   cancelOrderSchema,
+  createPaymentSchema,
+  voidPaymentSchema,
+  createConsignmentReturnSchema,
 } from '../index';
 
 describe('shared constants & currency helpers', () => {
@@ -291,9 +301,36 @@ describe('shared Zod validators', () => {
       itemsDiscountTotal: 55,
       shippingCost: 50,
       shippingDiscount: 15,
+      returnedTotal: 0,
       totalAmount: 580,
       amountPending: 480,
     });
+
+    const totalsWithReturn = calculateOrderTotals({
+      items: [lineFixed, linePercent],
+      shippingCost: 50,
+      shippingDiscount: 15,
+      returnedTotal: 80,
+      amountPaid: 200,
+    });
+    expect(totalsWithReturn).toEqual({
+      subtotal: 600,
+      itemsDiscountTotal: 55,
+      shippingCost: 50,
+      shippingDiscount: 15,
+      returnedTotal: 80,
+      totalAmount: 500,
+      amountPending: 300,
+    });
+
+    expect(derivePaymentStatus({ totalAmount: 0, amountPaid: 0 })).toBe('PAID');
+    expect(derivePaymentStatus({ totalAmount: 500, amountPaid: 0 })).toBe(
+      'PENDING_PAYMENT',
+    );
+    expect(derivePaymentStatus({ totalAmount: 500, amountPaid: 250 })).toBe(
+      'PARTIALLY_PAID',
+    );
+    expect(derivePaymentStatus({ totalAmount: 500, amountPaid: 500 })).toBe('PAID');
 
     expect(deriveFulfillmentStatus([])).toBe('PENDING_PACKING');
     expect(
@@ -360,5 +397,38 @@ describe('shared Zod validators', () => {
       cancelOrderSchema.safeParse({ cancelReason: 'Cliente solicitó cancelar' }).success,
     ).toBe(true);
     expect(cancelOrderSchema.safeParse({ cancelReason: 'no' }).success).toBe(false);
+
+    expect(PAYMENT_METHODS).toEqual(['CASH', 'TRANSFER', 'CHECK']);
+    expect(PAYMENT_METHOD_LABELS.TRANSFER).toBe('Transferencia');
+    expect(PAYMENT_RECORD_STATUSES).toEqual(['ACTIVE', 'VOIDED']);
+    expect(PAYMENT_RECORD_STATUS_LABELS.VOIDED).toBe('Anulado');
+    expect(EXCEL_DOCUMENT_TYPES).toEqual(['invoice', 'consignment', 'delivery']);
+    expect(EXCEL_DOCUMENT_LABELS.delivery).toContain('Nota de Entrega');
+
+    expect(
+      createPaymentSchema.safeParse({
+        amount: 450,
+        method: 'TRANSFER',
+        paymentDate: '2026-11-20',
+        reference: 'BOL-9981',
+      }).success,
+    ).toBe(true);
+    expect(
+      createPaymentSchema.safeParse({
+        amount: 0,
+        method: 'CASH',
+        paymentDate: '2026-11-20',
+      }).success,
+    ).toBe(false);
+    expect(
+      voidPaymentSchema.safeParse({ voidReason: 'Duplicado por error de captura' })
+        .success,
+    ).toBe(true);
+    expect(
+      createConsignmentReturnSchema.safeParse({
+        notes: 'Marcos sin rotación',
+        items: [{ orderItemId: 'oi_1', quantityReturned: 2 }],
+      }).success,
+    ).toBe(true);
   });
 });

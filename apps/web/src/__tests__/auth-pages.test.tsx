@@ -1,4 +1,5 @@
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -31,12 +32,17 @@ vi.mock('@/lib/api-client', async () => {
 const mockedApi = vi.mocked(apiClient, true);
 
 function renderWithProviders(ui: React.ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>{ui}</AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>,
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>{ui}</AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -45,6 +51,7 @@ describe('Auth pages and Dashboard', () => {
     vi.clearAllMocks();
     setMockSearchParams({});
     mockedApi.post.mockRejectedValue(new Error('No session'));
+    mockedApi.get.mockResolvedValue({ data: {} });
   });
 
   it('submits login form and navigates to home on success', async () => {

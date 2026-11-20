@@ -9,6 +9,7 @@ import {
   Building2,
   ClipboardList,
   LayoutDashboard,
+  RotateCcw,
   Settings,
   Users,
 } from 'lucide-react';
@@ -38,6 +39,12 @@ const NAV_ITEMS: NavItem[] = [
     href: '/pedidos',
     label: 'Pedidos',
     icon: <ClipboardList size={20} />,
+    requiredPermission: 'orders.read',
+  },
+  {
+    href: '/consignaciones',
+    label: 'Consignaciones',
+    icon: <RotateCcw size={20} />,
     requiredPermission: 'orders.read',
   },
   {

@@ -126,6 +126,33 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 export const PAYMENT_METHODS = ['CASH', 'TRANSFER', 'CHECK'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Efectivo',
+  TRANSFER: 'Transferencia',
+  CHECK: 'Cheque',
+};
+
+export const PAYMENT_RECORD_STATUSES = ['ACTIVE', 'VOIDED'] as const;
+export type PaymentRecordStatus = (typeof PAYMENT_RECORD_STATUSES)[number];
+
+export const PAYMENT_RECORD_STATUS_LABELS: Record<PaymentRecordStatus, string> = {
+  ACTIVE: 'Activo',
+  VOIDED: 'Anulado',
+};
+
+export const EXCEL_DOCUMENT_TYPES = [
+  'invoice',
+  'consignment',
+  'delivery',
+] as const;
+export type ExcelDocumentType = (typeof EXCEL_DOCUMENT_TYPES)[number];
+
+export const EXCEL_DOCUMENT_LABELS: Record<ExcelDocumentType, string> = {
+  invoice: 'Factura / Resumen de Pedido',
+  consignment: 'Recibo de Consignación',
+  delivery: 'Nota de Entrega Parcial / Total',
+};
+
 export const DISCOUNT_TYPES = ['FIXED', 'PERCENT'] as const;
 export type DiscountType = (typeof DISCOUNT_TYPES)[number];
 
@@ -163,6 +190,7 @@ export function calculateOrderTotals(params: {
   items: Array<{ gross?: number; discountAmount?: number; lineTotal: number }>;
   shippingCost?: number;
   shippingDiscount?: number;
+  returnedTotal?: number;
   amountPaid?: number;
 }) {
   let subtotal = 0;
@@ -182,8 +210,12 @@ export function calculateOrderTotals(params: {
   const shippingDiscount = roundMoney(
     Math.min(shippingCost, Math.max(0, params.shippingDiscount ?? 0)),
   );
+  const returnedTotal = roundMoney(Math.max(0, params.returnedTotal ?? 0));
   const totalAmount = roundMoney(
-    Math.max(0, subtotal - itemsDiscountTotal + shippingCost - shippingDiscount),
+    Math.max(
+      0,
+      subtotal - itemsDiscountTotal + shippingCost - shippingDiscount - returnedTotal,
+    ),
   );
   const safePaid = roundMoney(Math.max(0, params.amountPaid ?? 0));
   const amountPending = roundMoney(Math.max(0, totalAmount - safePaid));
@@ -193,9 +225,25 @@ export function calculateOrderTotals(params: {
     itemsDiscountTotal,
     shippingCost,
     shippingDiscount,
+    returnedTotal,
     totalAmount,
     amountPending,
   };
+}
+
+export function derivePaymentStatus(params: {
+  totalAmount: number;
+  amountPaid: number;
+}): PaymentStatus {
+  const safeTotal = roundMoney(Math.max(0, params.totalAmount));
+  const safePaid = roundMoney(Math.max(0, params.amountPaid));
+  if (safePaid <= 0) {
+    return safeTotal <= 0 ? 'PAID' : 'PENDING_PAYMENT';
+  }
+  if (safePaid >= safeTotal) {
+    return 'PAID';
+  }
+  return 'PARTIALLY_PAID';
 }
 
 export function deriveFulfillmentStatus(

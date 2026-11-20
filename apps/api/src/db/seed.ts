@@ -665,15 +665,16 @@ async function main() {
           type: 'REGULAR',
           approvalStatus: 'CONFIRMED',
           fulfillmentStatus: 'PARTIALLY_DISPATCHED',
-          paymentStatus: 'PENDING_PAYMENT',
+          paymentStatus: 'PARTIALLY_PAID',
           currency: 'GTQ',
           subtotal: 1590,
           itemsDiscountTotal: 15,
           shippingCost: 45,
           shippingDiscount: 10,
+          returnedTotal: 0,
           totalAmount: 1610,
-          amountPaid: 0,
-          amountPending: 1610,
+          amountPaid: 800,
+          amountPending: 810,
           notes: 'Entrega parcial en Zona 10; saldo pendiente por despachar.',
           createdById: adminId,
           confirmedById: adminId,
@@ -779,6 +780,34 @@ async function main() {
           reference: order1Num,
           performedById: adminId,
         },
+      });
+
+      await prisma.payment.createMany({
+        data: [
+          {
+            orderId: order1.id,
+            amount: 800,
+            method: 'TRANSFER',
+            paymentDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            reference: 'TRANSF-88410',
+            notes: 'Primer abono vía Banco Industrial.',
+            status: 'ACTIVE',
+            registeredById: adminId,
+          },
+          {
+            orderId: order1.id,
+            amount: 200,
+            method: 'CHECK',
+            paymentDate: new Date(Date.now() - 36 * 60 * 60 * 1000),
+            reference: 'CHQ-1029',
+            notes: 'Captura duplicada de prueba.',
+            status: 'VOIDED',
+            voidReason: 'Cheque ingresado con monto preliminar incorrecto.',
+            voidedAt: new Date(Date.now() - 30 * 60 * 60 * 1000),
+            registeredById: adminId,
+            voidedById: adminId,
+          },
+        ],
       });
     }
 
@@ -887,10 +916,247 @@ async function main() {
         },
       });
     }
+
+    const managuaCustomer = await prisma.customer.findUnique({
+      where: { email: 'gerencia@marcosmanagua.ni' },
+    });
+    const order4Num = `PED-${year}-0004`;
+    if (
+      managuaCustomer &&
+      !(await prisma.order.findUnique({ where: { orderNumber: order4Num } }))
+    ) {
+      const marcoFresh4 = await prisma.product.findUnique({
+        where: { id: marcoAzulCode.product.id },
+      });
+      const stockBeforePack4 = marcoFresh4?.stock ?? 34;
+      const stockAfterPack4 = Math.max(0, stockBeforePack4 - 5);
+      const stockAfterReturn4 = stockAfterPack4 + 1;
+
+      const order4 = await prisma.order.create({
+        data: {
+          orderNumber: order4Num,
+          customerId: managuaCustomer.id,
+          type: 'CONSIGNMENT',
+          approvalStatus: 'CONFIRMED',
+          fulfillmentStatus: 'COMPLETED',
+          paymentStatus: 'PARTIALLY_PAID',
+          currency: 'NIO',
+          subtotal: 4450,
+          itemsDiscountTotal: 0,
+          shippingCost: 250,
+          shippingDiscount: 0,
+          returnedTotal: 890,
+          totalAmount: 3810,
+          amountPaid: 1200,
+          amountPending: 2610,
+          consignmentDueDate: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
+          notes: 'Consignación Managua con 1 devolución y abono en efectivo.',
+          createdById: adminId,
+          confirmedById: adminId,
+          confirmedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+          items: {
+            create: [
+              {
+                productId: marcoAzulCode.product.id,
+                productName: marcoAzulCode.product.name,
+                productPrimaryCode: 'AMD-MC-4050',
+                quantityOrdered: 5,
+                quantityPacked: 5,
+                quantityDispatched: 5,
+                quantityReturned: 1,
+                unitPrice: 890,
+                discountType: 'FIXED',
+                discountValue: 0,
+                discountAmount: 0,
+                lineTotal: 4450,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+
+      const oi4 = order4.items[0]!;
+      await prisma.dispatchEvent.create({
+        data: {
+          orderId: order4.id,
+          dispatchNumber: 1,
+          carrier: 'TicaBus Encomienda',
+          notes: 'Envío inicial consignación Managua',
+          dispatchedById: adminId,
+          items: {
+            create: [
+              {
+                orderItemId: oi4.id,
+                quantityDispatched: 5,
+                cumulativeDispatched: 5,
+                remainingPending: 0,
+              },
+            ],
+          },
+        },
+      });
+
+      await prisma.consignmentReturn.create({
+        data: {
+          orderId: order4.id,
+          returnNumber: 1,
+          notes: 'Devolución de 1 unidad sin rotación.',
+          totalCredit: 890,
+          receivedById: adminId,
+          items: {
+            create: [
+              {
+                orderItemId: oi4.id,
+                quantityReturned: 1,
+                unitCredit: 890,
+                lineCredit: 890,
+              },
+            ],
+          },
+        },
+      });
+
+      await prisma.payment.create({
+        data: {
+          orderId: order4.id,
+          amount: 1200,
+          method: 'CASH',
+          paymentDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          reference: 'REC-NI-401',
+          notes: 'Abono inicial reportado por tienda.',
+          status: 'ACTIVE',
+          registeredById: adminId,
+        },
+      });
+
+      await prisma.product.update({
+        where: { id: marcoAzulCode.product.id },
+        data: { stock: stockAfterReturn4 },
+      });
+      await prisma.stockMovement.createMany({
+        data: [
+          {
+            productId: marcoAzulCode.product.id,
+            type: 'ORDER_PACK',
+            quantityDelta: -5,
+            previousStock: stockBeforePack4,
+            newStock: stockAfterPack4,
+            reason: `Empaque pedido ${order4Num}`,
+            reference: order4Num,
+            performedById: adminId,
+          },
+          {
+            productId: marcoAzulCode.product.id,
+            type: 'CONSIGNMENT_RETURN',
+            quantityDelta: 1,
+            previousStock: stockAfterPack4,
+            newStock: stockAfterReturn4,
+            reason: `Devolución de consignación ${order4Num}`,
+            reference: order4Num,
+            performedById: adminId,
+          },
+        ],
+      });
+    }
+
+    const cuscatlanCustomer = await prisma.customer.findUnique({
+      where: { email: 'abastecimiento@cuscatlan.sv' },
+    });
+    const order5Num = `PED-${year}-0005`;
+    if (
+      cuscatlanCustomer &&
+      !(await prisma.order.findUnique({ where: { orderNumber: order5Num } }))
+    ) {
+      const molduraFresh5 = await prisma.product.findUnique({
+        where: { id: molduraDoradaCode.product.id },
+      });
+      const stockBeforePack5 = molduraFresh5?.stock ?? 28;
+      const stockAfterPack5 = Math.max(0, stockBeforePack5 - 4);
+
+      const order5 = await prisma.order.create({
+        data: {
+          orderNumber: order5Num,
+          customerId: cuscatlanCustomer.id,
+          type: 'REGULAR',
+          approvalStatus: 'CONFIRMED',
+          fulfillmentStatus: 'COMPLETED',
+          paymentStatus: 'PENDING_PAYMENT',
+          currency: 'USD',
+          subtotal: 124,
+          itemsDiscountTotal: 0,
+          shippingCost: 20,
+          shippingDiscount: 0,
+          returnedTotal: 0,
+          totalAmount: 144,
+          amountPaid: 0,
+          amountPending: 144,
+          notes: 'Despacho completado en San Salvador, pendiente de cobro.',
+          createdById: adminId,
+          confirmedById: adminId,
+          confirmedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+          items: {
+            create: [
+              {
+                productId: molduraDoradaCode.product.id,
+                productName: molduraDoradaCode.product.name,
+                productPrimaryCode: 'AMD-MD-240',
+                quantityOrdered: 4,
+                quantityPacked: 4,
+                quantityDispatched: 4,
+                unitPrice: 31,
+                discountType: 'FIXED',
+                discountValue: 0,
+                discountAmount: 0,
+                lineTotal: 124,
+              },
+            ],
+          },
+        },
+        include: { items: true },
+      });
+
+      await prisma.dispatchEvent.create({
+        data: {
+          orderId: order5.id,
+          dispatchNumber: 1,
+          carrier: 'Transporte CA4',
+          notes: 'Entrega total San Salvador',
+          dispatchedById: adminId,
+          items: {
+            create: [
+              {
+                orderItemId: order5.items[0]!.id,
+                quantityDispatched: 4,
+                cumulativeDispatched: 4,
+                remainingPending: 0,
+              },
+            ],
+          },
+        },
+      });
+
+      await prisma.product.update({
+        where: { id: molduraDoradaCode.product.id },
+        data: { stock: stockAfterPack5 },
+      });
+      await prisma.stockMovement.create({
+        data: {
+          productId: molduraDoradaCode.product.id,
+          type: 'ORDER_PACK',
+          quantityDelta: -4,
+          previousStock: stockBeforePack5,
+          newStock: stockAfterPack5,
+          reason: `Empaque pedido ${order5Num}`,
+          reference: order5Num,
+          performedById: adminId,
+        },
+      });
+    }
   }
 
   console.log(
-    'Seed local completado (permisos, 4 usuarios, 12 clientes regionales, 14 productos multimoneda y 3 pedidos demo).',
+    'Seed local completado (permisos, 4 usuarios, 12 clientes regionales, 14 productos multimoneda y 5 pedidos demo).',
   );
 }
 

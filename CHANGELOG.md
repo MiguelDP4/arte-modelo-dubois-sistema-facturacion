@@ -64,3 +64,11 @@ Todos los cambios relevantes del proyecto se registran en este archivo siguiendo
   - Middlewares `requireAuth` y `requirePermission(...)` aplicados a todas las rutas privadas (`/api/users`, `/api/permissions`) con protección del último administrador, auto-desactivación y permisos críticos bloqueados de `ADMIN`.
   - Vistas Mobile-First: `/login`, `/registro`, `/verificar-cuenta`, `/registro-invitado`, `/` (Inicio), `/usuarios` y `/configuracion` (Mi Perfil + Matriz de Permisos por Rol).
   - Suites automatizadas: Vitest (>85% de cobertura en `shared`, `api` y `web`), pruebas de integración contra `test.db` y E2E Playwright (Desktop + Mobile).
+
+
+## [2.0.0-alpha.4] — Fase 5 & Fase 6 (2026-11-20)
+- **Pagos y Anulaciones (`F5-01`):** Modelo `Payment` (`CASH`, `TRANSFER`, `CHECK`), subida de comprobantes (`/api/uploads/payment-receipt`), anulación lógica con motivo y recálculo transaccional de `amountPaid`, `amountPending` y `paymentStatus`.
+- **Consignación Automatizada (`F5-02`):** Modelos `ConsignmentReturn` y `ConsignmentReturnItem` con reingreso automático al stock (`CONSIGNMENT_RETURN` en Kardex), ajuste de deuda y nueva vista `/consignaciones` con consolidado por cliente.
+- **Exportación Excel `.xlsx` (`F5-03`):** Servicio `ExcelJS` con logo oficial de Arte Modelo Dubois incrustado para Factura/Resumen, Recibo de Consignación y Nota de Entrega Parcial/Total.
+- **Notificaciones Automáticas por Correo (`F5-04`):** Disparo automático vía `email.service.ts` para pedido pendiente al staff y confirmación, despacho y abono registrado al cliente.
+- **Dashboard Ejecutivo y Demo Seed (`F6-01`, `F6-02`):** Endpoint `GET /api/dashboard` y vista `/` multimoneda (`GTQ`, `HNL`, `NIO`, `USD`), alertas de stock bajo, consignaciones próximas a vencer, seed ampliado con 5 pedidos demo y cobertura completa E2E (16/16 Playwright) + Vitest (>85%).
