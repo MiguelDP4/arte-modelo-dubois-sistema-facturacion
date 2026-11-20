@@ -1,0 +1,311 @@
+@use '../../styles/mixins.scss' as *;
+
+.page {
+  @include page-container;
+}
+
+.header {
+  @include page-header;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.94rem;
+}
+
+.primaryBtn {
+  @include button-primary;
+}
+
+.secondaryBtn {
+  @include button-secondary;
+}
+
+.card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.08rem;
+    color: var(--text-primary);
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field {
+  @include input-group;
+}
+
+.fieldHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.warningText {
+  margin: 0;
+  color: var(--color-warning);
+  background-color: var(--color-warning-bg);
+  padding: 14px;
+  font-weight: 700;
+}
+
+.linesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lineCard {
+  background-color: var(--background-surface);
+  box-shadow: var(--shadow-xs);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.customerLineGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: minmax(260px, 1fr) 110px auto;
+    align-items: end;
+  }
+}
+
+.staffLineGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: 14px;
+  row-gap: 10px;
+
+  > * {
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    grid-template-columns: 88px minmax(176px, 1fr) minmax(112px, auto) auto;
+    align-items: end;
+
+    > :first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (min-width: 1080px) {
+    grid-template-columns: minmax(200px, 1fr) 84px minmax(176px, 188px) minmax(112px, auto) auto;
+    align-items: end;
+
+    > :first-child {
+      grid-column: auto;
+    }
+  }
+}
+
+.lineActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.iconBtn {
+  @include button-secondary;
+  width: var(--touch-min);
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0;
+}
+
+.iconBtnActive {
+  background-color: var(--brand-themed-dark);
+  color: var(--text-on-brand);
+  border-color: transparent;
+}
+
+.iconDangerBtn {
+  @include button-danger;
+  width: var(--touch-min);
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0;
+}
+
+.discountDrawer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+
+  @media (min-width: 640px) {
+    grid-template-columns: 1fr 1fr;
+    max-width: 440px;
+  }
+}
+
+.priceFieldWrap {
+  @include input-group;
+  position: relative;
+  min-width: 0;
+}
+
+.priceLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 20px;
+
+  label {
+    white-space: nowrap;
+  }
+}
+
+.tooltipToggleBtn {
+  border: 1px solid var(--border-secondary);
+  background-color: var(--background-elevated);
+  color: var(--text-brand-emphasis);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.priceTooltip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 240px;
+  max-width: min(280px, calc(100vw - 48px));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  box-shadow: var(--shadow-md);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.applyLastPriceBtn {
+  align-self: flex-start;
+  border: none;
+  background-color: var(--brand-themed-dark);
+  color: var(--text-on-brand);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  min-height: 28px;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.lineTotalBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-end;
+  min-height: var(--touch-min);
+
+  span {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  strong {
+    font-size: 0.96rem;
+    min-height: var(--touch-min);
+    display: flex;
+    align-items: center;
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.summaryBox {
+  background-color: var(--background-surface);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.94rem;
+  color: var(--text-secondary);
+
+  span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  strong {
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+}
+
+.summaryGrand {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.submitRow {
+  display: flex;
+  justify-content: flex-end;
+}

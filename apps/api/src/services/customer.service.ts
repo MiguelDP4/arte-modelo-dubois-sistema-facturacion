@@ -136,9 +136,28 @@ export async function getCustomerById(id: string) {
     throw notFound('Cliente no encontrado.');
   }
 
+  const orders = await prisma.order.findMany({
+    where: { customerId: id },
+    orderBy: [{ createdAt: 'desc' }],
+    take: 20,
+    select: {
+      id: true,
+      orderNumber: true,
+      type: true,
+      approvalStatus: true,
+      fulfillmentStatus: true,
+      paymentStatus: true,
+      currency: true,
+      totalAmount: true,
+      amountPending: true,
+      consignmentDueDate: true,
+      createdAt: true,
+    },
+  });
+
   return {
     customer: toCustomerDto(customer),
-    orders: [] as unknown[],
+    orders,
   };
 }
 
@@ -273,6 +292,19 @@ export async function archiveCustomer(id: string) {
   if (existing._count.users > 0) {
     throw conflict(
       'Este cliente tiene cuentas de usuario vinculadas. Desvincúlalas antes de desactivar el cliente.',
+    );
+  }
+
+  const activeOrders = await prisma.order.count({
+    where: {
+      customerId: id,
+      approvalStatus: { not: 'CANCELLED' },
+      fulfillmentStatus: { not: 'COMPLETED' },
+    },
+  });
+  if (activeOrders > 0) {
+    throw conflict(
+      'Este cliente tiene pedidos activos en proceso. Complétalos o cancélalos antes de desactivar el cliente.',
     );
   }
 

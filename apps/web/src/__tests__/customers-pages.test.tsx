@@ -207,7 +207,21 @@ describe('Clientes & ClienteDetalle pages', () => {
       return {
         data: {
           customer: sampleCustomer,
-          orders: [],
+          orders: [
+            {
+              id: 'ord-1',
+              orderNumber: 'PED-2026-0001',
+              type: 'CONSIGNMENT',
+              approvalStatus: 'CONFIRMED',
+              fulfillmentStatus: 'PARTIALLY_DISPATCHED',
+              paymentStatus: 'PARTIALLY_PAID',
+              currency: 'GTQ',
+              totalAmount: 1610,
+              amountPending: 800,
+              consignmentDueDate: null,
+              createdAt: '2026-01-10',
+            },
+          ],
         },
       };
     });
@@ -223,6 +237,9 @@ describe('Clientes & ClienteDetalle pages', () => {
         screen.getByRole('heading', { name: 'Decoraciones El Quetzal, S.A.' }),
       ).toBeInTheDocument();
     });
+    expect(screen.getByText('PED-2026-0001')).toBeInTheDocument();
+    expect(screen.getByText('Consignación')).toBeInTheDocument();
+    expect(screen.getByText('Despacho parcial')).toBeInTheDocument();
     expect(screen.getByText('Guatemala (GTQ)')).toBeInTheDocument();
     expect(screen.getByText('4589123-4')).toBeInTheDocument();
 

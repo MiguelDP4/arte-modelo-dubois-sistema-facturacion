@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { COUNTRIES, ROLES } from './constants';
+import { COUNTRIES, DISCOUNT_TYPES, ORDER_TYPES, ROLES } from './constants';
 import { PERMISSION_CODES } from './permissions';
 
 export const passwordSchema = z
@@ -320,6 +320,144 @@ export const linkCustomerUserSchema = z.object({
   userId: z.string().trim().min(1, 'Selecciona un usuario para vincular.'),
 });
 
+export const orderItemInputSchema = z
+  .object({
+    productId: z.string().trim().min(1, 'Selecciona un producto válido.'),
+    quantityOrdered: z
+      .number()
+      .int('La cantidad pedida debe ser un número entero.')
+      .min(1, 'La cantidad pedida debe ser al menos 1.')
+      .max(100000, 'La cantidad pedida supera el máximo permitido.'),
+    unitPrice: z
+      .number()
+      .min(0, 'El precio unitario no puede ser negativo.')
+      .max(9999999.99, 'El precio unitario supera el límite permitido.')
+      .optional(),
+    discountType: z.enum(DISCOUNT_TYPES).default('FIXED'),
+    discountValue: z
+      .number()
+      .min(0, 'El descuento no puede ser negativo.')
+      .max(9999999.99, 'El descuento supera el límite permitido.')
+      .default(0),
+  })
+  .refine(
+    (data) => data.discountType !== 'PERCENT' || data.discountValue <= 100,
+    {
+      message: 'El descuento porcentual no puede superar el 100%.',
+      path: ['discountValue'],
+    },
+  );
+
+const optionalMoneyField = z
+  .number()
+  .min(0, 'El monto no puede ser negativo.')
+  .max(9999999.99, 'El monto supera el límite permitido.');
+
+const optionalDueDateField = z
+  .string()
+  .trim()
+  .max(40)
+  .nullable()
+  .optional()
+  .or(z.literal(''));
+
+const optionalNotesField = z
+  .string()
+  .trim()
+  .max(1000, 'Las notas no pueden superar 1000 caracteres.')
+  .nullable()
+  .optional();
+
+export const createOrderSchema = z.object({
+  customerId: z.string().trim().min(1).optional(),
+  type: z.enum(ORDER_TYPES).default('REGULAR'),
+  shippingCost: optionalMoneyField.default(0),
+  shippingDiscount: optionalMoneyField.default(0),
+  consignmentDueDate: optionalDueDateField,
+  notes: optionalNotesField,
+  items: z
+    .array(orderItemInputSchema)
+    .min(1, 'El pedido debe incluir al menos un producto.'),
+});
+
+export const updateOrderSchema = z.object({
+  type: z.enum(ORDER_TYPES).optional(),
+  shippingCost: optionalMoneyField.optional(),
+  shippingDiscount: optionalMoneyField.optional(),
+  consignmentDueDate: optionalDueDateField,
+  notes: optionalNotesField,
+  items: z
+    .array(orderItemInputSchema)
+    .min(1, 'El pedido debe conservar al menos un producto.')
+    .optional(),
+});
+
+export const confirmOrderSchema = z.object({
+  type: z.enum(ORDER_TYPES).optional(),
+  shippingCost: optionalMoneyField.optional(),
+  shippingDiscount: optionalMoneyField.optional(),
+  consignmentDueDate: optionalDueDateField,
+  notes: optionalNotesField,
+  items: z
+    .array(orderItemInputSchema)
+    .min(1, 'El pedido debe incluir al menos un producto.')
+    .optional(),
+});
+
+export const packOrderSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.string().trim().min(1, 'Ítem inválido.'),
+        quantityPacked: z
+          .number()
+          .int('La cantidad empacada debe ser un entero.')
+          .min(0, 'La cantidad empacada no puede ser negativa.'),
+      }),
+    )
+    .min(1, 'Debes indicar al menos un ítem a empacar.'),
+  notes: z
+    .string()
+    .trim()
+    .max(300, 'Las notas de empaque no pueden superar 300 caracteres.')
+    .nullable()
+    .optional(),
+});
+
+export const createDispatchSchema = z.object({
+  carrier: z
+    .string()
+    .trim()
+    .max(120, 'El transporte no puede superar 120 caracteres.')
+    .nullable()
+    .optional(),
+  notes: z
+    .string()
+    .trim()
+    .max(500, 'Las notas de despacho no pueden superar 500 caracteres.')
+    .nullable()
+    .optional(),
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.string().trim().min(1, 'Ítem inválido.'),
+        quantityToDispatch: z
+          .number()
+          .int('La cantidad a despachar debe ser un entero.')
+          .min(1, 'Debes despachar al menos 1 unidad del ítem.'),
+      }),
+    )
+    .min(1, 'Debes seleccionar al menos un ítem para despachar.'),
+});
+
+export const cancelOrderSchema = z.object({
+  cancelReason: z
+    .string()
+    .trim()
+    .min(3, 'Indica el motivo de cancelación (mínimo 3 caracteres).')
+    .max(500, 'El motivo de cancelación no puede superar 500 caracteres.'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
@@ -334,3 +472,10 @@ export type UploadImageInput = z.infer<typeof uploadImageSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 export type LinkCustomerUserInput = z.infer<typeof linkCustomerUserSchema>;
+export type OrderItemInput = z.infer<typeof orderItemInputSchema>;
+export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
+export type ConfirmOrderInput = z.infer<typeof confirmOrderSchema>;
+export type PackOrderInput = z.infer<typeof packOrderSchema>;
+export type CreateDispatchInput = z.infer<typeof createDispatchSchema>;
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;

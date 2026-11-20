@@ -2,6 +2,38 @@
 
 Todos los cambios relevantes del proyecto se registran en este archivo siguiendo [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.0.0-alpha.3] — Fase 4 (Motor de Pedidos, Precios Congelados, Empaque por Delta y Despachos Parciales)
+
+### Agregado
+- **Cálculos financieros y validaciones compartidas (`packages/shared`):**
+  - Etiquetas en español para tipos de pedido (`REGULAR`, `CONSIGNMENT`), los 3 estados desacoplados (`approvalStatus`, `fulfillmentStatus`, `paymentStatus`) y tipos de descuento (`FIXED`, `PERCENT`).
+  - Helpers puros `calculateOrderLine`, `calculateOrderTotals` y `deriveFulfillmentStatus`, además de esquemas Zod para creación, edición, confirmación, empaque, despachos y cancelación lógica de pedidos.
+- **Motor de Pedidos B2B en Backend (`apps/api`, `F4-01` a `F4-03`):**
+  - Nuevos modelos Prisma `Order`, `OrderItem`, `DispatchEvent` y `DispatchEventItem` en esquemas PostgreSQL y SQLite, más exposición de `customerId` en sesión autenticada.
+  - Endpoints `/api/orders` con RBAC completo:
+    - Creación para clientes (`PENDING_CONFIRMATION` con precios enmascarados hasta confirmación y bloqueo absoluto de edición/confirmación/empaque/despacho/cancelación).
+    - Creación/edición para staff (`CONFIRMED` inmediato o confirmación de pedidos de clientes, precios unitarios históricos congelados sin afectar catálogo ni otros pedidos, descuentos por ítem fijo o porcentual y flete/descuento en flete).
+    - `GET /api/orders/last-price` para sugerir el último precio histórico aplicado por `(customerId, productId)`.
+    - Empaque transaccional por **delta** (`POST /api/orders/:id/pack`) registrando movimientos `ORDER_PACK` / `ORDER_REVERT` en el Kardex.
+    - Despachos parciales o totales (`POST /api/orders/:id/dispatches`) generando `DispatchEvent` secuenciales con acumulados y saldos pendientes por entregar, sin pisar `paymentStatus`.
+    - Cancelación lógica (`POST /api/orders/:id/cancel`) revirtiendo unidades empacadas al inventario.
+  - Seed ampliado con 3 pedidos demo (`PED-2026-0001` con despacho parcial y precio negociado, `PED-2026-0002` pendiente de confirmar y `PED-2026-0003` de consignación).
+- **Portal de Pedidos y Operación Logística en Frontend (`apps/web`, `F4-04`):**
+  - Páginas Mobile-First `/pedidos` (paginación con `Todos` y debounce `1000 ms`), `/pedidos/nuevo`, `/pedidos/[id]` y `/pedidos/[id]/editar` respetando Material Design Recto (`border-radius: 0`), cards/sidebar sin contornos y modales sin `alert()`/`confirm()`.
+  - Tooltip inteligente en captura de precio unitario (`"Último precio aplicado a este cliente: ..."` con botón rápido `"Usar último precio"`), modales de empaque con vista previa del delta de stock, despachos parciales/totales e historial real de pedidos dentro de `/clientes/[id]`.
+  - Suites actualizadas: Vitest en `shared`, `api` y `web` (>85% cobertura) + E2E Playwright Fase 4 (Desktop + Mobile).
+
+### Mejorado
+- **Buscadores con Indicador Animado (`SearchingIndicator`) y Carga Perezosa por Scroll (`CustomerSearchSelect` & `ProductSearchSelect`):**
+  - Creado el componente `SearchingIndicator` con spinner animado (`Loader2`) y etiqueta `"Buscando..."` (eliminando todo texto `"Esperando 1 segundo..."`) en `/catalogo`, `/productos`, `/clientes`, `/usuarios`, `/pedidos` y en los selectores de pedidos.
+  - Convertido `ProductSearchSelect` a `useInfiniteQuery` con carga perezosa al llegar al final del scroll (10 productos por página, sin precargar el catálogo completo al abrir `/pedidos/nuevo` o `/pedidos/[id]/editar`), debounce estricto de `1000 ms`, exclusión de repetidos (`?excludeIds`) y vista con miniatura, nombre y precio en moneda local para staff.
+  - Creado `CustomerSearchSelect` con el mismo patrón de búsqueda perezosa (`GET /customers` paginado de 10 en 10 por scroll y debounce `1000 ms`, eliminando la precarga completa de clientes al abrir `/pedidos/nuevo`).
+  - Reajustada la grilla de líneas en `OrderForm.module.scss` para dar holgura al encabezado `"Precio unit."` junto al ícono de tooltip y evitar que se monte sobre `"Subtotal"`.
+  - Filas de pedido compactas: eliminado el encabezado `"Línea #N"`, botón de eliminar alineado inline únicamente con ícono de basurero (`Trash2`, sin texto `"Quitar"`), selector/monto de descuento ocultos detrás de botón con ícono (`Percent`) y tooltip de último precio renderizado únicamente cuando existe historial real de ventas previas para ese `(cliente, producto)` (sin mostrar `"sin historial"`).
+- **Legibilidad Monetaria y Controles Numéricos:**
+  - `formatCurrency` une el símbolo monetario y las cifras mediante espacio inseparable (`\u00A0`) combinado con `white-space: nowrap; font-variant-numeric: tabular-nums; flex-shrink: 0` en detalle y listados de pedidos para evitar saltos de línea con montos de 7 o más dígitos.
+  - Ocultamiento global de flechas/spin buttons en todos los `<input type="number">` mediante `globals.scss`.
+
 ## [2.0.0-alpha.2] — Fase 2 & Fase 3 (Catálogo Multimoneda, Kardex y Cartera Regional de Clientes)
 
 ### Agregado

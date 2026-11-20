@@ -75,12 +75,23 @@ export const STOCK_MOVEMENT_LABELS: Record<StockMovementType, string> = {
 export const ORDER_TYPES = ['REGULAR', 'CONSIGNMENT'] as const;
 export type OrderType = (typeof ORDER_TYPES)[number];
 
+export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  REGULAR: 'Regular',
+  CONSIGNMENT: 'Consignación',
+};
+
 export const APPROVAL_STATUSES = [
   'PENDING_CONFIRMATION',
   'CONFIRMED',
   'CANCELLED',
 ] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
+  PENDING_CONFIRMATION: 'Por confirmar',
+  CONFIRMED: 'Confirmado',
+  CANCELLED: 'Cancelado',
+};
 
 export const FULFILLMENT_STATUSES = [
   'PENDING_PACKING',
@@ -91,6 +102,14 @@ export const FULFILLMENT_STATUSES = [
 ] as const;
 export type FulfillmentStatus = (typeof FULFILLMENT_STATUSES)[number];
 
+export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
+  PENDING_PACKING: 'Por empacar',
+  PACKING: 'Empacando',
+  READY_TO_DISPATCH: 'Listo para despacho',
+  PARTIALLY_DISPATCHED: 'Despacho parcial',
+  COMPLETED: 'Entregado total',
+};
+
 export const PAYMENT_STATUSES = [
   'PENDING_PAYMENT',
   'PARTIALLY_PAID',
@@ -98,8 +117,111 @@ export const PAYMENT_STATUSES = [
 ] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  PENDING_PAYMENT: 'Pendiente de pago',
+  PARTIALLY_PAID: 'Abono parcial',
+  PAID: 'Pagado',
+};
+
 export const PAYMENT_METHODS = ['CASH', 'TRANSFER', 'CHECK'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const DISCOUNT_TYPES = ['FIXED', 'PERCENT'] as const;
+export type DiscountType = (typeof DISCOUNT_TYPES)[number];
+
+export const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
+  FIXED: 'Monto fijo',
+  PERCENT: 'Porcentaje (%)',
+};
+
+export function roundMoney(val: number): number {
+  return Math.round((Number.isFinite(val) ? val : 0) * 100) / 100;
+}
+
+export function calculateOrderLine(params: {
+  quantityOrdered: number;
+  unitPrice: number;
+  discountType?: DiscountType;
+  discountValue?: number;
+}) {
+  const qty = Math.max(0, params.quantityOrdered);
+  const price = Math.max(0, params.unitPrice);
+  const gross = roundMoney(qty * price);
+  const rawDisc = Math.max(0, params.discountValue ?? 0);
+  const discountType = params.discountType ?? 'FIXED';
+
+  const discountAmount =
+    discountType === 'PERCENT'
+      ? roundMoney((gross * Math.min(100, rawDisc)) / 100)
+      : roundMoney(Math.min(gross, rawDisc));
+
+  const lineTotal = roundMoney(Math.max(0, gross - discountAmount));
+  return { gross, discountAmount, lineTotal };
+}
+
+export function calculateOrderTotals(params: {
+  items: Array<{ gross?: number; discountAmount?: number; lineTotal: number }>;
+  shippingCost?: number;
+  shippingDiscount?: number;
+  amountPaid?: number;
+}) {
+  let subtotal = 0;
+  let itemsDiscountTotal = 0;
+
+  for (const item of params.items) {
+    const disc = roundMoney(Math.max(0, item.discountAmount ?? 0));
+    const gross =
+      item.gross !== undefined
+        ? roundMoney(item.gross)
+        : roundMoney(item.lineTotal + disc);
+    subtotal = roundMoney(subtotal + gross);
+    itemsDiscountTotal = roundMoney(itemsDiscountTotal + disc);
+  }
+
+  const shippingCost = roundMoney(Math.max(0, params.shippingCost ?? 0));
+  const shippingDiscount = roundMoney(
+    Math.min(shippingCost, Math.max(0, params.shippingDiscount ?? 0)),
+  );
+  const totalAmount = roundMoney(
+    Math.max(0, subtotal - itemsDiscountTotal + shippingCost - shippingDiscount),
+  );
+  const safePaid = roundMoney(Math.max(0, params.amountPaid ?? 0));
+  const amountPending = roundMoney(Math.max(0, totalAmount - safePaid));
+
+  return {
+    subtotal,
+    itemsDiscountTotal,
+    shippingCost,
+    shippingDiscount,
+    totalAmount,
+    amountPending,
+  };
+}
+
+export function deriveFulfillmentStatus(
+  items: Array<{
+    quantityOrdered: number;
+    quantityPacked: number;
+    quantityDispatched: number;
+  }>,
+): FulfillmentStatus {
+  if (items.length === 0) return 'PENDING_PACKING';
+
+  const hasOrdered = items.some((i) => i.quantityOrdered > 0);
+  if (hasOrdered && items.every((i) => i.quantityDispatched >= i.quantityOrdered)) {
+    return 'COMPLETED';
+  }
+  if (items.some((i) => i.quantityDispatched > 0)) {
+    return 'PARTIALLY_DISPATCHED';
+  }
+  if (hasOrdered && items.every((i) => i.quantityPacked >= i.quantityOrdered)) {
+    return 'READY_TO_DISPATCH';
+  }
+  if (items.some((i) => i.quantityPacked > 0)) {
+    return 'PACKING';
+  }
+  return 'PENDING_PACKING';
+}
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 0] as const;
 export const DEFAULT_PAGE_SIZE = 10;
@@ -153,5 +275,5 @@ export function formatCurrency(amount: number, currency: Currency): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${CURRENCY_SYMBOLS[currency]} ${formatted}`;
+  return `${CURRENCY_SYMBOLS[currency]}\u00A0${formatted}`;
 }

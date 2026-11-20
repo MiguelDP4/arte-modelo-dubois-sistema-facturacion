@@ -28,6 +28,7 @@ export interface PublicUserDto {
   fullName: string;
   phone: string | null;
   role: Role;
+  customerId: string | null;
   isActive: boolean;
   isVerified: boolean;
   createdAt: Date;
@@ -39,6 +40,7 @@ export function toPublicUser(user: {
   fullName: string;
   phone: string | null;
   role: string;
+  customerId?: string | null;
   isActive: boolean;
   isVerified: boolean;
   createdAt: Date;
@@ -49,6 +51,7 @@ export function toPublicUser(user: {
     fullName: user.fullName,
     phone: user.phone,
     role: user.role as Role,
+    customerId: user.customerId ?? null,
     isActive: user.isActive,
     isVerified: user.isVerified,
     createdAt: user.createdAt,

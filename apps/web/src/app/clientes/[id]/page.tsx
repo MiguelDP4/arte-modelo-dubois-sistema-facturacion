@@ -9,10 +9,17 @@ import {
   COUNTRY_CURRENCY,
   COUNTRY_LABELS,
   COUNTRY_TAX_LABEL,
+  formatCurrency,
   type CountryCode,
 } from '@arte-modelo/shared';
-import { ArrowLeft, Link2, Pencil, Unlink } from 'lucide-react';
+import { ArrowLeft, Link2, Pencil, Plus, Unlink } from 'lucide-react';
 import { AppShell } from '@/components/AppShell/AppShell';
+import {
+  ApprovalBadge,
+  FulfillmentBadge,
+  OrderTypeBadge,
+  PaymentBadge,
+} from '@/components/Orders/OrderStatusBadges';
 import { Modal } from '@/components/Modal/Modal';
 import { ConfirmModal } from '@/components/Modal/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -307,11 +314,49 @@ function ClienteDetalleContent() {
           className={`${styles.card} ${styles.fullWidthCard}`}
           aria-label="Historial de pedidos"
         >
-          <h2>Historial de Pedidos y Consignaciones</h2>
-          <p className={styles.emptyText}>
-            Este módulo se conectará automáticamente con el historial de
-            pedidos y saldos del cliente en la Fase 4 y Fase 5.
-          </p>
+          <div className={styles.sectionHeaderRow}>
+            <h2>Historial de Pedidos y Consignaciones</h2>
+            {hasPermission('orders.create') && customer.isActive ? (
+              <Link
+                href={`/pedidos/nuevo?customerId=${customerId}`}
+                className={styles.primaryBtn}
+              >
+                <Plus size={16} /> Nuevo pedido
+              </Link>
+            ) : null}
+          </div>
+
+          {(detailQuery.data?.orders || []).length === 0 ? (
+            <p className={styles.emptyText}>
+              Este cliente aún no tiene pedidos registrados.
+            </p>
+          ) : (
+            <div className={styles.usersList}>
+              {(detailQuery.data?.orders || []).map((order) => (
+                <div key={order.id} className={styles.orderRow}>
+                  <div className={styles.orderMeta}>
+                    <Link
+                      href={`/pedidos/${order.id}`}
+                      className={styles.orderNumberLink}
+                    >
+                      {order.orderNumber}
+                    </Link>
+                    <span>
+                      {new Date(order.createdAt).toLocaleDateString('es-GT')} · Total:{' '}
+                      {formatCurrency(order.totalAmount, order.currency)} · Saldo:{' '}
+                      {formatCurrency(order.amountPending, order.currency)}
+                    </span>
+                  </div>
+                  <div className={styles.orderBadges}>
+                    <OrderTypeBadge type={order.type} />
+                    <ApprovalBadge status={order.approvalStatus} />
+                    <FulfillmentBadge status={order.fulfillmentStatus} />
+                    <PaymentBadge status={order.paymentStatus} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 

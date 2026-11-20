@@ -27,6 +27,10 @@ model User {
   customer                   Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
   refreshTokens              RefreshToken[]
   stockMovements             StockMovement[] @relation("StockMovementActor")
+  createdOrders              Order[]         @relation("OrderCreator")
+  confirmedOrders            Order[]         @relation("OrderConfirmer")
+  cancelledOrders            Order[]         @relation("OrderCanceller")
+  dispatchEvents             DispatchEvent[] @relation("DispatchActor")
   createdAt                  DateTime        @default(now())
   updatedAt                  DateTime        @updatedAt
 
@@ -87,6 +91,7 @@ model Product {
   codes             ProductCode[]
   images            ProductImage[]
   stockMovements    StockMovement[]
+  orderItems        OrderItem[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -148,9 +153,106 @@ model Customer {
   isActive    Boolean   @default(true)
   deletedAt   DateTime?
   users       User[]
+  orders      Order[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@index([country])
   @@index([isActive, deletedAt])
+}
+
+model Order {
+  id                 String          @id @default(cuid())
+  orderNumber        String          @unique
+  customerId         String
+  customer           Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  type               String          @default("REGULAR") // REGULAR | CONSIGNMENT
+  approvalStatus     String          @default("CONFIRMED") // PENDING_CONFIRMATION | CONFIRMED | CANCELLED
+  fulfillmentStatus  String          @default("PENDING_PACKING") // PENDING_PACKING | PACKING | READY_TO_DISPATCH | PARTIALLY_DISPATCHED | COMPLETED
+  paymentStatus      String          @default("PENDING_PAYMENT") // PENDING_PAYMENT | PARTIALLY_PAID | PAID
+  currency           String          @default("GTQ")
+  subtotal           Float           @default(0)
+  itemsDiscountTotal Float           @default(0)
+  shippingCost       Float           @default(0)
+  shippingDiscount   Float           @default(0)
+  totalAmount        Float           @default(0)
+  amountPaid         Float           @default(0)
+  amountPending      Float           @default(0)
+  consignmentDueDate DateTime?
+  notes              String?
+  createdById        String?
+  createdBy          User?           @relation("OrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  confirmedById      String?
+  confirmedBy        User?           @relation("OrderConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedAt        DateTime?
+  cancelledById      String?
+  cancelledBy        User?           @relation("OrderCanceller", fields: [cancelledById], references: [id], onDelete: SetNull)
+  cancelledAt        DateTime?
+  cancelReason       String?
+  items              OrderItem[]
+  dispatches         DispatchEvent[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([customerId, createdAt])
+  @@index([approvalStatus])
+  @@index([fulfillmentStatus])
+  @@index([paymentStatus])
+  @@index([type])
+}
+
+model OrderItem {
+  id                 String              @id @default(cuid())
+  orderId            String
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productName        String
+  productPrimaryCode String
+  quantityOrdered    Int
+  quantityPacked     Int                 @default(0)
+  quantityDispatched Int                 @default(0)
+  unitPrice          Float               @default(0)
+  discountType       String              @default("FIXED") // FIXED | PERCENT
+  discountValue      Float               @default(0)
+  discountAmount     Float               @default(0)
+  lineTotal          Float               @default(0)
+  dispatchItems      DispatchEventItem[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([orderId, productId])
+  @@index([orderId])
+  @@index([productId])
+}
+
+model DispatchEvent {
+  id             String              @id @default(cuid())
+  orderId        String
+  order          Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dispatchNumber Int
+  dispatchedAt   DateTime            @default(now())
+  carrier        String?
+  notes          String?
+  dispatchedById String?
+  dispatchedBy   User?               @relation("DispatchActor", fields: [dispatchedById], references: [id], onDelete: SetNull)
+  items          DispatchEventItem[]
+  createdAt      DateTime            @default(now())
+
+  @@unique([orderId, dispatchNumber])
+  @@index([orderId, dispatchedAt])
+}
+
+model DispatchEventItem {
+  id                   String        @id @default(cuid())
+  dispatchEventId      String
+  dispatchEvent        DispatchEvent @relation(fields: [dispatchEventId], references: [id], onDelete: Cascade)
+  orderItemId          String
+  orderItem            OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  quantityDispatched   Int
+  cumulativeDispatched Int
+  remainingPending     Int
+
+  @@unique([dispatchEventId, orderItemId])
+  @@index([orderItemId])
 }

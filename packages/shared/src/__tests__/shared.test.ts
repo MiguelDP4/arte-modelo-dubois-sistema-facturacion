@@ -1,15 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
+  APPROVAL_STATUS_LABELS,
   COUNTRY_CURRENCY,
   COUNTRY_LABELS,
   COUNTRY_TAX_LABEL,
   DEFAULT_PAGE_SIZE,
+  DISCOUNT_TYPE_LABELS,
+  FULFILLMENT_STATUS_LABELS,
+  ORDER_TYPE_LABELS,
   PAGE_SIZE_OPTIONS,
+  PAYMENT_STATUS_LABELS,
   PRODUCT_CODE_LABELS,
   SEARCH_DEBOUNCE_MS,
   STOCK_MOVEMENT_LABELS,
   STOCK_MOVEMENT_TYPES,
   buildPaginationMeta,
+  calculateOrderLine,
+  calculateOrderTotals,
+  deriveFulfillmentStatus,
   formatCurrency,
   isPermissionCode,
   LOCKED_ADMIN_PERMISSIONS,
@@ -30,6 +38,12 @@ import {
   createCustomerSchema,
   updateCustomerSchema,
   linkCustomerUserSchema,
+  createOrderSchema,
+  updateOrderSchema,
+  confirmOrderSchema,
+  packOrderSchema,
+  createDispatchSchema,
+  cancelOrderSchema,
 } from '../index';
 
 describe('shared constants & currency helpers', () => {
@@ -43,9 +57,10 @@ describe('shared constants & currency helpers', () => {
     expect(COUNTRY_TAX_LABEL.NI).toBe('RUC');
   });
 
-  it('formats currencies safely including non-finite fallback', () => {
+  it('formats currencies safely including non-finite fallback and non-breaking spaces', () => {
     expect(formatCurrency(1250.5, 'GTQ')).toContain('Q');
     expect(formatCurrency(1250.5, 'GTQ')).toContain('1');
+    expect(formatCurrency(1234567.89, 'GTQ')).toContain('Q\u00A0');
     expect(formatCurrency(99, 'USD')).toContain('$');
     expect(formatCurrency(Number.NaN, 'HNL')).toContain('L');
     expect(formatCurrency(Number.NaN, 'HNL')).toContain('0.00');
@@ -240,5 +255,110 @@ describe('shared Zod validators', () => {
 
     expect(updateCustomerSchema.safeParse({ isActive: false }).success).toBe(true);
     expect(linkCustomerUserSchema.safeParse({ userId: 'usr_1' }).success).toBe(true);
+  });
+
+  it('calculates order lines, totals, fulfillment states, and validates Phase 4 order schemas', () => {
+    expect(ORDER_TYPE_LABELS.CONSIGNMENT).toBe('Consignación');
+    expect(APPROVAL_STATUS_LABELS.PENDING_CONFIRMATION).toBe('Por confirmar');
+    expect(FULFILLMENT_STATUS_LABELS.PARTIALLY_DISPATCHED).toBe('Despacho parcial');
+    expect(PAYMENT_STATUS_LABELS.PENDING_PAYMENT).toBe('Pendiente de pago');
+    expect(DISCOUNT_TYPE_LABELS.PERCENT).toBe('Porcentaje (%)');
+
+    const lineFixed = calculateOrderLine({
+      quantityOrdered: 3,
+      unitPrice: 100,
+      discountType: 'FIXED',
+      discountValue: 25,
+    });
+    expect(lineFixed).toEqual({ gross: 300, discountAmount: 25, lineTotal: 275 });
+
+    const linePercent = calculateOrderLine({
+      quantityOrdered: 2,
+      unitPrice: 150,
+      discountType: 'PERCENT',
+      discountValue: 10,
+    });
+    expect(linePercent).toEqual({ gross: 300, discountAmount: 30, lineTotal: 270 });
+
+    const totals = calculateOrderTotals({
+      items: [lineFixed, linePercent],
+      shippingCost: 50,
+      shippingDiscount: 15,
+      amountPaid: 100,
+    });
+    expect(totals).toEqual({
+      subtotal: 600,
+      itemsDiscountTotal: 55,
+      shippingCost: 50,
+      shippingDiscount: 15,
+      totalAmount: 580,
+      amountPending: 480,
+    });
+
+    expect(deriveFulfillmentStatus([])).toBe('PENDING_PACKING');
+    expect(
+      deriveFulfillmentStatus([
+        { quantityOrdered: 4, quantityPacked: 0, quantityDispatched: 0 },
+      ]),
+    ).toBe('PENDING_PACKING');
+    expect(
+      deriveFulfillmentStatus([
+        { quantityOrdered: 4, quantityPacked: 2, quantityDispatched: 0 },
+      ]),
+    ).toBe('PACKING');
+    expect(
+      deriveFulfillmentStatus([
+        { quantityOrdered: 4, quantityPacked: 4, quantityDispatched: 0 },
+      ]),
+    ).toBe('READY_TO_DISPATCH');
+    expect(
+      deriveFulfillmentStatus([
+        { quantityOrdered: 4, quantityPacked: 4, quantityDispatched: 2 },
+      ]),
+    ).toBe('PARTIALLY_DISPATCHED');
+    expect(
+      deriveFulfillmentStatus([
+        { quantityOrdered: 4, quantityPacked: 4, quantityDispatched: 4 },
+      ]),
+    ).toBe('COMPLETED');
+
+    expect(
+      createOrderSchema.safeParse({
+        customerId: 'cust_1',
+        type: 'CONSIGNMENT',
+        items: [{ productId: 'prod_1', quantityOrdered: 2, unitPrice: 175 }],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      createOrderSchema.safeParse({
+        items: [
+          {
+            productId: 'prod_1',
+            quantityOrdered: 1,
+            discountType: 'PERCENT',
+            discountValue: 120,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+
+    expect(updateOrderSchema.safeParse({ shippingCost: 25 }).success).toBe(true);
+    expect(confirmOrderSchema.safeParse({}).success).toBe(true);
+    expect(
+      packOrderSchema.safeParse({
+        items: [{ orderItemId: 'oi_1', quantityPacked: 3 }],
+      }).success,
+    ).toBe(true);
+    expect(
+      createDispatchSchema.safeParse({
+        carrier: 'Guatex',
+        items: [{ orderItemId: 'oi_1', quantityToDispatch: 2 }],
+      }).success,
+    ).toBe(true);
+    expect(
+      cancelOrderSchema.safeParse({ cancelReason: 'Cliente solicitó cancelar' }).success,
+    ).toBe(true);
+    expect(cancelOrderSchema.safeParse({ cancelReason: 'no' }).success).toBe(false);
   });
 });

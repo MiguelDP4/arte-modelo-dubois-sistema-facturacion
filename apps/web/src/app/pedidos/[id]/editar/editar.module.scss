@@ -1,0 +1,21 @@
+@use '../../../../styles/mixins.scss' as *;
+
+.page {
+  @include page-container;
+}
+
+.card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+
+  h1 {
+    margin: 0;
+  }
+}
+
+.secondaryBtn {
+  @include button-secondary;
+}

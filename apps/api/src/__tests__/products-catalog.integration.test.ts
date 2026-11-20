@@ -365,6 +365,27 @@ describe('Products, Multiple Codes, Public Catalog Privacy, Uploads & Kardex API
     expect(lowStockAll.status).toBe(200);
     expect(lowStockAll.body.products).toHaveLength(2);
     expect(lowStockAll.body.pagination.pageSize).toBe(0);
+
+    // excludeIds excludes selected products from /api/catalog and /api/products
+    const excludedIds = [
+      catalogAll.body.products[0].id as string,
+      catalogAll.body.products[1].id as string,
+    ];
+    const catalogFiltered = await request(app).get(
+      `/api/catalog?excludeIds=${excludedIds.join(',')}`,
+    );
+    expect(catalogFiltered.status).toBe(200);
+    expect(catalogFiltered.body.products).toHaveLength(2);
+    expect(catalogFiltered.body.pagination.total).toBe(2);
+    for (const item of catalogFiltered.body.products as Array<{ id: string }>) {
+      expect(excludedIds).not.toContain(item.id);
+    }
+
+    const productsFiltered = await request(app)
+      .get(`/api/products?excludeIds=${excludedIds[0]}`)
+      .set('Authorization', `Bearer ${admin.token}`);
+    expect(productsFiltered.status).toBe(200);
+    expect(productsFiltered.body.pagination.total).toBe(3);
   });
 
   it('uploads product image to local fallback storage and serves it safely', async () => {

@@ -1,6 +1,6 @@
 # Documentación Técnica — Arte Modelo Dubois 2.0
 
-> **Fuente Única de Verdad** del Sistema de Facturación y Pedidos B2B de **Arte Modelo Dubois**. Actualizada al cierre de **Fase 2** y **Fase 3**.
+> **Fuente Única de Verdad** del Sistema de Facturación y Pedidos B2B de **Arte Modelo Dubois**. Actualizada al cierre de **Fase 4**.
 
 ---
 
@@ -66,7 +66,7 @@ Sistema Facturación Arte Modelo 2.0/
 
 ---
 
-## 3. Esquema de Base de Datos (Fases 1–3)
+## 3. Esquema de Base de Datos (Fases 1–4)
 
 Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (PostgreSQL) y `apps/api/prisma/schema.sqlite.prisma` (SQLite):
 
@@ -78,10 +78,13 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 - **`ProductImage`**: `id`, `productId`, `url`, `altText`, `sortOrder`.
 - **`StockMovement`**: `id`, `productId`, `type` (`INITIAL` | `MANUAL_IN` | `MANUAL_OUT` | `MANUAL_ADJUST` | `ORDER_PACK` | `ORDER_REVERT` | `CONSIGNMENT_RETURN`), `quantityDelta`, `previousStock`, `newStock`, `reason`, `reference`, `performedById`, `createdAt`.
 - **`Customer`**: `id`, `companyName`, `managerName`, `phone`, `email` (unique), `country` (`GT` | `HN` | `NI` | `SV` | `OTHER`), `currency` (`GTQ` | `HNL` | `NIO` | `USD`), `address`, `taxId`, `notes`, `isActive`, `deletedAt`, `createdAt`, `updatedAt`.
+- **`Order`**: `id`, `orderNumber` (`PED-YYYY-XXXX`), `customerId`, `type` (`REGULAR` | `CONSIGNMENT`), estados desacoplados (`approvalStatus`, `fulfillmentStatus`, `paymentStatus`), `currency`, `subtotal`, `itemsDiscountTotal`, `shippingCost`, `shippingDiscount`, `totalAmount`, `amountPaid`, `amountPending`, `consignmentDueDate`, `notes`, auditoría de creación/confirmación/cancelación lógica (`cancelReason`, `cancelledAt`, `cancelledById`).
+- **`OrderItem`**: `id`, `orderId`, `productId`, `productName`, `productPrimaryCode`, `quantityOrdered`, `quantityPacked`, `quantityDispatched`, `unitPrice` congelado, `discountType` (`FIXED` | `PERCENT`), `discountValue`, `discountAmount`, `lineTotal`.
+- **`DispatchEvent` & `DispatchEventItem`**: historial de entregas parciales o totales (`dispatchNumber`, `carrier`, `notes`, `dispatchedAt`, `quantityDispatched`, `cumulativeDispatched`, `remainingPending`).
 
 ---
 
-## 4. Endpoints REST Implementados (Fases 1–3)
+## 4. Endpoints REST Implementados (Fases 1–4)
 
 | Método | Ruta | Acceso / Permiso | Descripción |
 | :--- | :--- | :--- | :--- |
@@ -103,9 +106,9 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 | `DELETE` | `/api/users/:id` | `users.delete` | Desactivación lógica segura y revocación inmediata de refresh tokens. |
 | `GET` | `/api/permissions` | `permissions.manage` | Devuelve la matriz de permisos paginable (`page`, `pageSize`; `pageSize=0` por defecto devuelve todos). |
 | `PUT` | `/api/permissions/role/:role` | `permissions.manage` | Actualiza permisos de un rol fijo (protegiendo permisos críticos de `ADMIN`). |
-| `GET` | `/api/catalog` | Público | Catálogo público paginado (`page`, `pageSize`; `0` = todos) con búsqueda por código/nombre; **excluye precios y stock** (sin categorías). |
+| `GET` | `/api/catalog` | Público | Catálogo público paginado (`page`, `pageSize`; `0` = todos) con búsqueda por código/nombre y parámetro opcional `excludeIds`; **excluye precios y stock** (sin categorías). |
 | `GET` | `/api/catalog/:id` | Público | Detalle público de producto sin precios ni stock. |
-| `GET` | `/api/products` | `products.read` | Lista productos paginados (`page`, `pageSize`; `0` = todos) con búsqueda unificada por cualquier código (solo incluye precios/stock si tiene `products.read_prices`). |
+| `GET` | `/api/products` | `products.read` | Lista productos paginados (`page`, `pageSize`; `0` = todos) con búsqueda unificada por cualquier código y parámetro opcional `excludeIds` (solo incluye precios/stock si tiene `products.read_prices`). |
 | `GET` | `/api/products/:id` | `products.read` | Detalle interno de producto respetando `products.read_prices`. |
 | `POST` | `/api/products` | `products.manage` | Crea producto multimoneda, códigos múltiples, imágenes e inventario inicial (`StockMovement`). |
 | `PATCH` | `/api/products/:id` | `products.manage` | Actualiza datos, precios, códigos múltiples e imágenes sin mutar stock directamente. |
@@ -123,6 +126,15 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
 | `DELETE` | `/api/customers/:id` | `customers.manage` | Desactiva cliente lógicamente (bloquea si aún tiene cuentas vinculadas). |
 | `POST` | `/api/customers/:id/users` | `customers.manage` | Vincula cuenta `CUSTOMER` al cliente. |
 | `DELETE` | `/api/customers/:id/users/:userId` | `customers.manage` | Desvincula cuenta de usuario del cliente. |
+| `GET` | `/api/orders` | `orders.read` | Lista pedidos paginados (`page`, `pageSize`; `0` = todos), filtros y alcance estricto por cliente si rol es `CUSTOMER`. |
+| `GET` | `/api/orders/last-price` | `products.read_prices` | Devuelve el último precio aplicado a un `(customerId, productId)` y el precio base del catálogo (solo staff). |
+| `GET` | `/api/orders/:id` | `orders.read` | Detalle completo del pedido, ítems e historial de despachos (enmascara precios si `CUSTOMER` y `PENDING_CONFIRMATION`). |
+| `POST` | `/api/orders` | `orders.create` | Crea pedido (`PENDING_CONFIRMATION` para `CUSTOMER` sin precios/flete cliente; `CONFIRMED` para staff con precios congelados). |
+| `POST` | `/api/orders/:id/confirm` | `orders.confirm` | Confirma pedido de cliente ajustando precios/descuentos/flete finales (`CUSTOMER` bloqueado). |
+| `PATCH` | `/api/orders/:id` | `orders.manage` | Edita pedido sin alterar precios de catálogo ni reducir debajo de lo ya empacado (`CUSTOMER` bloqueado). |
+| `POST` | `/api/orders/:id/pack` | `orders.manage` | Empaca por **delta** transaccional de stock (`ORDER_PACK` / `ORDER_REVERT`) sin modificar `paymentStatus`. |
+| `POST` | `/api/orders/:id/dispatches` | `orders.manage` | Registra entrega parcial o total (`DispatchEvent`) actualizando `fulfillmentStatus` (`PARTIALLY_DISPATCHED` / `COMPLETED`). |
+| `POST` | `/api/orders/:id/cancel` | `orders.cancel` | Cancelación lógica con motivo y reversión automática de unidades empacadas al stock. |
 
 ---
 
@@ -133,13 +145,14 @@ Modelos implementados de forma idéntica en `apps/api/prisma/schema.prisma` (Pos
   - *Tema Claro:* Fondos `#ffe7c8` / `#f5d5b7` / `#fff1de` / `#fdfaf6`; marca azul marino `#06005c` / `#08042b` / `#110b51`.
   - *Tema Oscuro (`html[data-theme="dark"]`):* Fondos carbón `#242424` / `#1a1a1a` / `#292929` / `#333333`; marca vino/borgoña `#250000` / `#531212` / `#762323`; acentos dorado `#e0c942` y rojo `#b61212`.
 - **Mobile-First:** Base diseñada desde 320px/375px con áreas táctiles `>= 44px`, cero scroll horizontal y `ResponsiveTable` que convierte tablas en cards apiladas en móvil.
-- **Paginación y Debounce (`1000 ms`):** Componente `Pagination` con selector de tamaño de página (`10`, `20`, `50`, `100` y `Todos` = `pageSize=0`) respaldado por consultas paginadas en todos los endpoints de listado, y hook `useDebouncedValue` (`SEARCH_DEBOUNCE_MS = 1000`) en todos los buscadores para evitar solicitudes excesivas al servidor.
+- **Paginación y Debounce (`1000 ms`):** Componente `Pagination` con selector de tamaño de página (`10`, `20`, `50`, `100` y `Todos` = `pageSize=0`) respaldado por consultas paginadas en todos los endpoints de listado, componente `SearchingIndicator` (`"Buscando..."` con spinner animado) y hook `useDebouncedValue` (`SEARCH_DEBOUNCE_MS = 1000`) en todos los buscadores para evitar solicitudes excesivas al servidor.
 - **Sin `alert()` / `confirm()`:** Todo aviso o confirmación usa `ToastContainer`, `Modal` o `ConfirmModal`.
 
 ### Páginas Implementadas
 - `/login`, `/registro`, `/verificar-cuenta`, `/registro-invitado` — Flujos de acceso y registro público.
 - `/` — Dashboard inicial con accesos rápidos por permiso.
 - `/catalogo` — Catálogo público (sin precios/stock) y consulta interna para staff con galería modal.
+- `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]` y `/pedidos/[id]/editar` — Listado paginado de pedidos B2B, creación/edición para staff y clientes con `CustomerSearchSelect` y `ProductSearchSelect` (búsqueda perezosa con debounce `1000 ms`, spinner `"Buscando..."`, carga incremental por scroll de 10 en 10, exclusión de repetidos y tooltip condicional solo con historial previo), confirmación, empaque por delta y despachos parciales/totales.
 - `/productos` — Gestión de catálogo multimoneda, códigos múltiples, subida de fotos y Kardex (`products.read_prices`).
 - `/clientes` y `/clientes/[id]` — Cartera regional con etiqueta fiscal dinámica y vinculación de usuarios (`customers.read`).
 - `/usuarios` — Gestión de usuarios e invitaciones (`users.read`).

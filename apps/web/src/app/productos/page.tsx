@@ -25,6 +25,7 @@ import {
   type TableColumn,
 } from '@/components/ResponsiveTable/ResponsiveTable';
 import { Pagination } from '@/components/Pagination/Pagination';
+import { SearchingIndicator } from '@/components/SearchingIndicator/SearchingIndicator';
 import { Modal } from '@/components/Modal/Modal';
 import { ConfirmModal } from '@/components/Modal/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -453,10 +454,9 @@ function ProductosContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {isWaitingDebounce ? (
-            <span className={styles.debounceHint} role="status">
-              Esperando 1 segundo para buscar...
-            </span>
+          {isWaitingDebounce ||
+          (productsQuery.isFetching && debouncedSearch.trim().length > 0) ? (
+            <SearchingIndicator compact />
           ) : null}
         </div>
 

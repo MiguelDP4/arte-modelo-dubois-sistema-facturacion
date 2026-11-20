@@ -10,8 +10,8 @@
 | **Fase 1** | Autenticación, Roles Fijos y RBAC Real | `Hecho` |
 | **Fase 2** | Catálogo Multimoneda, Códigos Múltiples y Kardex | `Hecho` |
 | **Fase 3** | Cartera Regional de Clientes | `Hecho` |
-| **Fase 4** | Motor de Pedidos, Precios, Empaque y Despachos | `Por Hacer` |
-| **Fase 5** | Pagos, Consignación Automatizada, Correos y Excel (`.xlsx`) | `Pendiente` |
+| **Fase 4** | Motor de Pedidos, Precios, Empaque y Despachos | `Hecho` |
+| **Fase 5** | Pagos, Consignación Automatizada, Correos y Excel (`.xlsx`) | `Por Hacer` |
 | **Fase 6** | Dashboard, E2E Completo, Demo Staging y Producción | `Pendiente` |
 
 ---
@@ -51,10 +51,10 @@
 ### Fase 4 — Motor de Pedidos, Precios, Empaque y Despachos
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
 | :--- | :--- | :--- | :--- | :--- |
-| `F4-01` | Modelos `Order`, `OrderItem`, `DispatchEvent` con estados desacoplados (`approvalStatus`, `fulfillmentStatus`, `paymentStatus`), descuentos por ítem y flete | `feature/F4-01-orders-schema-api` | `Por Hacer` | Precios congelados, cálculo exacto de totales/saldos, cancelación lógica y tests unitarios/integración. |
-| `F4-02` | Endpoint de sugerencia de último precio por `(customerId, productId)` + bloqueo de edición para `CUSTOMER` | `feature/F4-02-last-price-rules` | `Por Hacer` | Staff recibe último precio aplicado al cliente; `CUSTOMER` no puede editar tras crear. |
-| `F4-03` | Lógica transaccional de empaque por **delta** de stock (`StockMovement`) y despachos parciales/totales (`DispatchEvent`) | `feature/F4-03-pack-dispatch-engine` | `Por Hacer` | Editar cantidad empacada ajusta solo el delta; despachos actualizan `fulfillmentStatus` sin pisar `paymentStatus`. |
-| `F4-04` | UI de `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]/editar` y `/pedidos/[id]` con tooltip de último precio y confirmación de pedidos de clientes | `feature/F4-04-orders-ui` | `Por Hacer` | Flujo completo cliente -> staff confirma -> empaca -> despacha parcial/total probado en Playwright móvil y desktop. |
+| `F4-01` | Modelos `Order`, `OrderItem`, `DispatchEvent` con estados desacoplados (`approvalStatus`, `fulfillmentStatus`, `paymentStatus`), descuentos por ítem y flete | `feature/F4-orders-engine` | `Hecho` | Precios congelados, cálculo exacto de totales/saldos, cancelación lógica y tests unitarios/integración. |
+| `F4-02` | Endpoint de sugerencia de último precio por `(customerId, productId)` + bloqueo de edición para `CUSTOMER` | `feature/F4-orders-engine` | `Hecho` | Staff recibe último precio aplicado al cliente; `CUSTOMER` no puede editar tras crear. |
+| `F4-03` | Lógica transaccional de empaque por **delta** de stock (`StockMovement`) y despachos parciales/totales (`DispatchEvent`) | `feature/F4-orders-engine` | `Hecho` | Editar cantidad empacada ajusta solo el delta; despachos actualizan `fulfillmentStatus` sin pisar `paymentStatus`. |
+| `F4-04` | UI de `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]/editar` y `/pedidos/[id]` con tooltip de último precio y confirmación de pedidos de clientes | `feature/F4-orders-engine` | `Hecho` | Flujo completo cliente -> staff confirma -> empaca -> despacha parcial/total probado en Playwright móvil y desktop. |
 
 ### Fase 5 — Pagos, Consignación Automatizada, Correos y Excel (`.xlsx`)
 | ID | Tarea | Rama Sugerida | Estado | Criterio de Done |
