@@ -254,11 +254,11 @@ describe('ProductSearchSelect', () => {
     });
     Object.defineProperty(list, 'scrollHeight', { value: 600, configurable: true });
     Object.defineProperty(list, 'clientHeight', { value: 280, configurable: true });
-    Object.defineProperty(list, 'scrollTop', { value: 0, configurable: true });
+    Object.defineProperty(list, 'scrollTop', { value: 300, configurable: true });
     fireEvent.scroll(list);
     expect(mockedApi.get).toHaveBeenCalledTimes(1);
 
-    Object.defineProperty(list, 'scrollTop', { value: 310, configurable: true });
+    Object.defineProperty(list, 'scrollTop', { value: 320, configurable: true });
     fireEvent.scroll(list);
 
     await waitFor(() => {

@@ -121,7 +121,8 @@ export function CustomerSearchSelect({
     const el = e.currentTarget;
     const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (
-      distanceToBottom <= 40 &&
+      el.scrollTop > 0 &&
+      distanceToBottom <= 2 &&
       customersQuery.hasNextPage &&
       !customersQuery.isFetchingNextPage
     ) {

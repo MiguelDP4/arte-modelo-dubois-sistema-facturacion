@@ -117,6 +117,12 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await expect(custListbox.getByRole('option')).toHaveCount(10);
 
     await custListbox.evaluate((el) => {
+      el.scrollTop = el.scrollHeight - el.clientHeight - 30;
+    });
+    await page.waitForTimeout(150);
+    await expect(custListbox.getByRole('option')).toHaveCount(10);
+
+    await custListbox.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
     await expect
@@ -139,6 +145,12 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await page.locator('#line-prod-0').click();
     const prodListbox = page.getByRole('listbox', { name: 'Resultados de productos' });
     await expect(prodListbox).toBeVisible({ timeout: 5000 });
+    await expect(prodListbox.getByRole('option')).toHaveCount(10);
+
+    await prodListbox.evaluate((el) => {
+      el.scrollTop = el.scrollHeight - el.clientHeight - 30;
+    });
+    await page.waitForTimeout(150);
     await expect(prodListbox.getByRole('option')).toHaveCount(10);
 
     await prodListbox.evaluate((el) => {
