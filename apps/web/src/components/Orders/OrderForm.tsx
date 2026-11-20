@@ -620,7 +620,7 @@ export function OrderForm({
                                 )
                               }
                             >
-                              <Info size={14} />
+                              <Info size={16} />
                             </button>
                           ) : null}
                         </div>
