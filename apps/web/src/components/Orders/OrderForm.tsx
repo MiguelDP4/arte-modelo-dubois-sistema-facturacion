@@ -205,14 +205,42 @@ export function OrderForm({
             return { ...line, unitPrice: String(suggested) };
           }),
         );
-        if (info.hasHistory && info.lastPrice !== null) {
-          setActiveTooltipKey(lineKey);
-        }
       }
     } catch {
       // Silencioso si no hay historial; conserva el precio de catálogo
     }
   };
+
+  useEffect(() => {
+    if (!activeTooltipKey) return;
+
+    const handleOutside = (e: MouseEvent) => {
+      const targetEl =
+        e.target instanceof Element
+          ? e.target
+          : (e.target as Node | null)?.parentElement ?? null;
+      if (
+        targetEl?.closest('[data-tooltip-popover="true"]') ||
+        targetEl?.closest(`[data-tooltip-toggle="${activeTooltipKey}"]`)
+      ) {
+        return;
+      }
+      setActiveTooltipKey(null);
+    };
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveTooltipKey(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [activeTooltipKey]);
 
   useEffect(() => {
     if (isCustomerUser || !customerId) return;
@@ -574,20 +602,7 @@ export function OrderForm({
 
                   {!isCustomerUser ? (
                     <>
-                      <div
-                        className={styles.priceFieldWrap}
-                        onBlur={(e) => {
-                          if (
-                            !e.currentTarget.contains(
-                              e.relatedTarget as Node | null,
-                            )
-                          ) {
-                            setActiveTooltipKey((curr) =>
-                              curr === line.key ? null : curr,
-                            );
-                          }
-                        }}
-                      >
+                      <div className={styles.priceFieldWrap}>
                         <div className={styles.priceLabelRow}>
                           <label htmlFor={`line-price-${index}`}>
                             Precio unit. ({activeCurrency})
@@ -596,6 +611,8 @@ export function OrderForm({
                             <button
                               type="button"
                               className={styles.tooltipToggleBtn}
+                              data-tooltip-toggle={line.key}
+                              aria-expanded={activeTooltipKey === line.key}
                               aria-label={`Ver último precio línea ${index + 1}`}
                               onClick={() =>
                                 setActiveTooltipKey((curr) =>
@@ -615,16 +632,6 @@ export function OrderForm({
                           min="0"
                           required
                           value={line.unitPrice}
-                          onFocus={() => {
-                            if (hasLastPriceHistory) {
-                              setActiveTooltipKey(line.key);
-                            }
-                          }}
-                          onMouseEnter={() => {
-                            if (hasLastPriceHistory) {
-                              setActiveTooltipKey(line.key);
-                            }
-                          }}
                           onChange={(e) =>
                             updateLineField(line.key, {
                               unitPrice: e.target.value,
@@ -636,7 +643,11 @@ export function OrderForm({
                         {hasLastPriceHistory &&
                         lastPriceInfo &&
                         activeTooltipKey === line.key ? (
-                          <div role="tooltip" className={styles.priceTooltip}>
+                          <div
+                            role="tooltip"
+                            data-tooltip-popover="true"
+                            className={styles.priceTooltip}
+                          >
                             <span>
                               Último precio aplicado a este cliente:{' '}
                               <strong>
