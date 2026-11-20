@@ -173,6 +173,16 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await expect(infoBtn).toBeVisible();
     await expect(page.getByRole('tooltip')).toHaveCount(0);
 
+    const infoBtnStyle = await infoBtn.evaluate((el) => {
+      const s = window.getComputedStyle(el);
+      return {
+        backgroundColor: s.backgroundColor,
+        borderTopWidth: s.borderTopWidth,
+      };
+    });
+    expect(infoBtnStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(infoBtnStyle.borderTopWidth).toBe('0px');
+
     await page.locator('#line-price-0').hover();
     await page.locator('#line-price-0').focus();
     await expect(page.getByRole('tooltip')).toHaveCount(0);
@@ -244,6 +254,24 @@ test.describe('Arte Modelo Dubois 2.0 — Fase 4 Pedidos B2B E2E', () => {
     await packDialog.getByLabel('Total empacado').fill('1');
     await expect(packDialog.getByText('Delta: -1 de stock')).toBeVisible();
     await packDialog.getByRole('button', { name: 'Guardar empaque' }).click();
+    await expect(page.getByText('Empacando').first()).toBeVisible();
+
+    // Verificar en /editar que "Mín. 1 empacadas" no desalinea los inputs de la fila
+    await page.goto(`${customerOrderUrl}/editar`);
+    await expect(page.getByText('Mín. 1 empacadas')).toBeVisible();
+    if (!isMobile) {
+      const prodBox = await page.locator('#line-prod-0').boundingBox();
+      const qtyBox = await page.locator('#line-qty-0').boundingBox();
+      const priceBox = await page.locator('#line-price-0').boundingBox();
+      expect(prodBox).not.toBeNull();
+      expect(qtyBox).not.toBeNull();
+      expect(priceBox).not.toBeNull();
+      if (prodBox && qtyBox && priceBox) {
+        expect(Math.abs(qtyBox.y - priceBox.y)).toBeLessThanOrEqual(2);
+        expect(Math.abs(prodBox.y - qtyBox.y)).toBeLessThanOrEqual(2);
+      }
+    }
+    await page.goto(customerOrderUrl);
     await expect(page.getByText('Empacando').first()).toBeVisible();
 
     // Registrar Despacho #1 (parcial)
